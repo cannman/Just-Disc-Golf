@@ -1,0 +1,1347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f4fbf">
+<meta name="description" content="Just Disc Golf: track your discs and practice distance, accuracy and putting.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JDG">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Just Disc Golf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Figtree:wght@400;500;600&display=swap">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+/* Layout: app shell — sticky header, one scrolling column, bottom tab bar like a phone app. Fairway greens, disc-plastic orange. */
+:root{
+  --bg:#f3f5ef; --surface:#ffffff; --sunk:#e7ebe0; --fg:#18241c; --muted:#5f6d62; --line:#d5dccd;
+  --green:#1f5a3a; --green-ink:#ffffff; --accent:#e8631c; --accent-soft:#fde5d6;
+  --good:#2f8a4e; --warn:#b7791f; --bad:#b83a32;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px; --royal:#1f4fbf; --royal-ink:#ffffff; --royal-text:#1f4fbf;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1712; --surface:#17221b; --sunk:#1f2c24; --fg:#e6ede6; --muted:#9aab9e; --line:#2b3a30;
+  --green:#2c7a50; --green-ink:#ffffff; --accent:#f37a37; --accent-soft:#3a2416;
+  --good:#5cc27f; --warn:#e0a84a; --bad:#ec6c62; --royal-text:#8fb0ff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1712; --surface:#17221b; --sunk:#1f2c24; --fg:#e6ede6; --muted:#9aab9e; --line:#2b3a30;
+  --green:#2c7a50; --green-ink:#ffffff; --accent:#f37a37; --accent-soft:#3a2416;
+  --good:#5cc27f; --warn:#e0a84a; --bad:#ec6c62; --royal-text:#8fb0ff; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--royal)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--royal);color:var(--royal-ink);
+  padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hwrap{max-width:720px;margin:0 auto;display:flex;align-items:baseline;gap:10px}
+.logo{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:.02em;line-height:1}
+.logo b{color:inherit}
+.sub{font-size:13px;opacity:.9}
+main{max-width:720px;margin:0 auto;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+h2{font-family:var(--display);font-weight:700;font-size:24px;margin:0;letter-spacing:.01em;text-wrap:balance}
+h3{font-family:var(--display);font-weight:700;font-size:19px;margin:0;letter-spacing:.02em;text-transform:uppercase}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.muted{color:var(--muted)} .small{font-size:13px}
+.num{font-variant-numeric:tabular-nums}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:12px}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:600}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 8px}
+.danger{color:var(--bad)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{flex:none;border-radius:999px;padding:6px 12px;font-size:13px;background:var(--sunk);border-color:transparent;font-weight:600;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--green);color:var(--green-ink)}
+.chip .c{opacity:.7;margin-left:4px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--sunk);border-radius:10px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;color:var(--muted);font-family:var(--display);font-size:17px;letter-spacing:.04em;text-transform:uppercase;padding:8px 4px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+form.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+form .full{grid-column:1/-1}
+label{display:grid;gap:4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;min-width:0}
+input,select{width:100%;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:16px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--fg)}
+.list{display:grid;gap:5px}
+.disc{background:var(--surface);border:1px solid var(--line);border-radius:8px;display:grid}
+.dhead{padding:7px 10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer;border-radius:8px}
+.chev{color:var(--muted);transition:transform .15s}
+.disc.open .chev{transform:rotate(180deg)}
+.dexp{border-top:1px solid var(--line);padding:10px;display:grid;gap:10px}
+.dexp-actions .confirm{width:100%}
+.fn4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.fn4>div{background:var(--sunk);border-radius:8px;padding:6px 4px;text-align:center;display:grid}
+.fn4 strong{font-family:var(--display);font-size:24px;line-height:1.1}
+.k{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ddl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+.dd{display:grid;gap:1px;min-width:0;font-size:14px}
+.dd>span:last-child{overflow-wrap:anywhere}
+.cname{display:inline-flex;align-items:center;margin-right:8px}
+.dnote p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+.disc #discForm{border:0;border-top:1px solid var(--line);border-radius:0 0 8px 8px;background:transparent}
+.dtop{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;min-width:0}
+.dtop>span+span::before{content:"·";color:var(--muted);margin-right:7px;font-weight:400}
+.dtype{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--royal-text)}
+.dtop .dname{font-size:15px}
+.dtop .plas,.dtop .stab{font-size:13px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:500}
+.dmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px}
+.dmeta .dot{margin-right:0;width:18px;height:18px;vertical-align:middle;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.disc .ghost{padding:6px 6px;font-size:13px}
+.sortbar{gap:8px;flex-wrap:nowrap}
+.sortlbl{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sortbar select{width:auto;flex:1;max-width:180px;padding:7px 8px;font-size:15px}
+.dirbtn{white-space:nowrap;font-size:13px}
+.nums{display:grid;grid-template-columns:repeat(4,auto);gap:3px;font-family:var(--display);font-weight:700;font-size:16px;justify-content:start}
+.nums span{background:var(--sunk);border-radius:5px;min-width:24px;text-align:center;padding:1px 3px;font-variant-numeric:tabular-nums;line-height:1.3}
+.nums span:first-child{background:var(--accent-soft);color:var(--accent)}
+.dname{font-weight:600;font-size:16px;overflow-wrap:anywhere}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:4px;padding:2px 6px;background:var(--sunk);color:var(--muted)}
+.st-bag{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.st-shelf{background:var(--sunk);color:var(--muted)}
+.st-found{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.st-stolen{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+.st-sold{background:color-mix(in srgb,var(--muted) 18%,transparent);color:var(--muted)}
+.stab{font-size:12px;color:var(--muted)}
+.numwrap{display:flex;gap:3px;min-width:0}
+.numwrap .pm{flex:none;padding:0 6px;font-size:16px}
+.flight4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.flight4 input{text-align:center;padding:9px 2px;min-width:0}
+.flight4 label{letter-spacing:.03em}
+.dhead:hover{background:color-mix(in srgb,var(--royal) 5%,transparent)}
+.dhead:active{background:var(--sunk)}
+.dhead:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.disc.open{border-color:var(--royal);box-shadow:0 0 0 2px color-mix(in srgb,var(--royal) 25%,transparent)}
+.disc.flash{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.colorpick{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.colorpick legend{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0;margin-bottom:6px}
+.colorpick legend .muted{text-transform:none;letter-spacing:0;font-weight:400}
+.cchip{display:inline-flex;align-items:center;gap:0;padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:14px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--fg);cursor:pointer;background:var(--bg)}
+.cchip input{position:absolute;opacity:0;width:1px;height:1px}
+.cchip:has(input:checked){border-color:var(--accent);background:var(--accent-soft);font-weight:700}
+.cchip:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
+.cstyle{display:grid;gap:6px}
+.cstyle-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dot.dotprev{width:34px;height:34px;margin:0;border:1px solid var(--line)}
+.cs-opt{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:600;color:var(--fg);text-transform:none;letter-spacing:0;cursor:pointer}
+.cs-opt input{width:18px;height:18px;accent-color:var(--accent)}
+.cs-rim{display:inline-flex;align-items:center;gap:6px;font-size:14px;text-transform:none;letter-spacing:0;color:var(--fg)}
+.cs-rim select{width:auto;padding:6px 8px}
+.cnew{border-style:dashed;color:var(--muted);background:transparent;font-weight:600}
+.cwheelbox{width:100%;display:grid;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
+.cwname{display:grid;gap:4px}
+.cwrow{display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:12px;align-items:center}
+.cwheel{position:relative;width:100%;max-width:220px;aspect-ratio:1;justify-self:center}
+.cwheel canvas{width:100%;height:100%;display:block;border-radius:50%;touch-action:none;cursor:crosshair}
+.cwmark{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.6),0 2px 6px rgba(0,0,0,.35);pointer-events:none}
+.cwside{display:grid;gap:6px;justify-items:center}
+.cwprev{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);box-shadow:inset 0 0 0 3px var(--surface)}
+.cwshades{display:grid;grid-template-columns:repeat(2,30px);gap:6px}
+.cwshade{width:30px;height:30px;padding:0;border-radius:50%;border:1px solid var(--line)}
+.cwshade.on{outline:3px solid var(--accent);outline-offset:1px}
+.cmanage{width:100%;text-align:left;padding:4px 0}
+.cmgr{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.cmgr .cchip{padding-right:2px}
+.cmgr .ghost{padding:2px 6px}
+textarea{width:100%;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit;font-size:16px;color:var(--fg);resize:vertical;text-transform:none;letter-spacing:0;font-weight:400}
+textarea:focus{border-color:var(--accent);background:var(--surface)}
+.fnotes summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;list-style:none;display:flex;align-items:center;gap:6px;padding:4px 0}
+.fnotes summary .muted{text-transform:none;letter-spacing:0;font-weight:400}
+.fnotes summary::-webkit-details-marker{display:none}
+.fnotes summary::after{content:"▸";transition:transform .15s}
+.fnotes[open] summary::after{transform:rotate(90deg)}
+.fnotes textarea{margin-top:4px}
+.dnotes{margin-top:4px;font-size:13px}
+.dnotes summary{cursor:pointer;color:var(--muted);font-weight:600;list-style:none;display:inline-flex;align-items:center;gap:4px}
+.dnotes summary::-webkit-details-marker{display:none}
+.dnotes summary::after{content:"▸";transition:transform .15s}
+.dnotes[open] summary::after{transform:rotate(90deg)}
+.dnotes p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.acesf .numwrap input{text-align:center;max-width:90px}
+.acesf .pm{width:44px;padding:0}
+.acerow{display:flex;align-items:center;gap:8px}
+.acerow strong{font-family:var(--display);font-size:22px;line-height:1}
+.aceadd{border:1px solid var(--line);padding:3px 10px;font-size:13px;color:var(--fg)}
+.acebadge{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:4px;padding:1px 6px}
+.secbar{display:flex;align-items:center;gap:6px;min-width:0}
+.secbar .chips{flex:1;min-width:0}
+.secbar .chip{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.secbar .chips.sorting{scroll-behavior:auto}
+.chip.dragging{background:var(--accent)!important;color:#fff!important;transform:scale(1.08);box-shadow:0 4px 12px rgba(0,0,0,.25);position:relative;z-index:2}
+.chartlink{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:color-mix(in srgb,var(--royal) 8%,var(--surface));border-color:color-mix(in srgb,var(--royal) 35%,var(--line));color:var(--royal-text);font-weight:700;padding:10px 12px}
+.chartlink .small{font-weight:400;margin-left:4px}
+.chartgo{margin-left:auto;font-size:20px;line-height:1}
+.sechint{font-size:12px;color:var(--muted);margin-top:-8px}
+.chip.secadd{background:var(--royal);color:var(--royal-ink);font-size:18px;line-height:1;padding:5px 14px}
+.secname{display:flex;align-items:center;gap:8px}
+.alltog{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;color:var(--fg);text-transform:none;letter-spacing:0;cursor:pointer;margin-top:-6px}
+.alltog input{position:absolute;opacity:0;width:1px;height:1px}
+.alltog .sw{width:36px;height:20px;border-radius:99px;background:var(--line);position:relative;transition:background .15s;flex:none}
+.alltog .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+.alltog input:checked+.sw{background:var(--good)}
+.alltog input:checked+.sw::after{transform:translateX(16px)}
+.alltog input:focus-visible+.sw{outline:3px solid var(--accent);outline-offset:2px}
+.chip.notall{border:1px dashed var(--muted)}
+.secmove{display:grid;gap:4px}
+.secname input{flex:1;font-weight:600;padding:7px 10px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid var(--line);margin-right:7px;vertical-align:-1px}
+.empty{text-align:center;padding:24px 12px;color:var(--muted);border:1.5px dashed var(--line);border-radius:var(--r)}
+.empty strong{display:block;color:var(--fg);font-family:var(--display);font-size:20px;margin-bottom:4px}
+.log{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.log:first-child{border-top:0}
+.big{font-family:var(--display);font-weight:700;font-size:24px;font-variant-numeric:tabular-nums}
+.big small{font-size:14px;color:var(--muted);margin-left:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.stat{background:var(--sunk);border-radius:8px;padding:10px}
+.stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.putt{display:grid;grid-template-columns:58px minmax(0,1fr) minmax(0,150px);gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.putt-head{padding:0;border:0;text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px}
+.putt-head span:last-child{text-align:center}
+.pin{text-align:center;font-size:18px;font-weight:600;padding:8px 4px}
+.throws{display:grid;gap:6px}
+.setup{border-color:color-mix(in srgb,var(--royal) 45%,var(--line))}
+.startbtn{width:100%;padding:14px;font-family:var(--display);font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.pdwrap{display:flex;align-items:baseline;gap:2px}
+.pdwrap .pdist{width:100%;min-width:0;font-family:var(--display);font-weight:800;font-size:20px;padding:5px 2px;text-align:center}
+.pdwrap small{font-size:11px;color:var(--muted);font-weight:600}
+.samebox{gap:8px}
+.sametotal{font-size:15px;font-variant-numeric:tabular-nums}
+.sametotal strong{font-family:var(--display);font-size:20px;color:var(--royal-text)}
+.backup summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.backup summary::-webkit-details-marker{display:none}
+.backup summary::after{content:"▾";color:var(--muted)}
+.backup:not([open]) summary::after{content:"▸"}
+.backup[open]{display:grid}
+.backup textarea{font-family:ui-monospace,monospace;font-size:12px}
+.filebtn{position:relative;display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;padding:9px 14px;font-weight:600;font-size:15px;text-transform:none;letter-spacing:0;color:var(--fg);cursor:pointer;background:var(--surface)}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.quicklog{gap:8px;padding:10px 12px;scroll-margin-top:8px}
+.qthrow{width:auto;padding:5px 8px;font-size:15px}
+.qline{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px;align-items:center}
+.qwrap{display:flex;align-items:baseline;gap:3px}
+.qwrap small{color:var(--muted);font-weight:600}
+.qdist::-webkit-outer-spin-button,.qdist::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qdist{-moz-appearance:textfield;appearance:textfield}
+.qdist{font-family:var(--display);font-size:26px;font-weight:800;padding:5px 6px;text-align:center;min-width:0}
+.qline select{padding:10px 6px;font-size:15px}
+.qsave{padding:11px 14px}
+.quicklog label .muted{text-transform:none;letter-spacing:0;font-weight:400}
+.surows{display:grid;gap:6px}
+.surow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:8px;align-items:center}
+.suhead{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ptab{display:grid}
+.prow{display:grid;grid-template-columns:72px 64px 64px minmax(0,1fr);gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.prow.phead{border-top:0;padding-top:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.prow.phead span:nth-child(2),.prow.phead span:nth-child(3){text-align:center}
+.prow.phead span:last-child,.ppct{text-align:right}
+.pft{font-family:var(--display);font-weight:800;font-size:22px;line-height:1}
+.pft small{font-size:12px;color:var(--muted);font-weight:600;margin-left:1px}
+.prow .pin{font-size:17px;padding:7px 4px}
+.ppct{display:grid;line-height:1.15}
+.ppct strong{font-family:var(--display);font-size:20px}
+.ppct small{font-size:11px;color:var(--muted)}
+.putters{grid-template-columns:auto minmax(0,140px);align-items:center;gap:12px;justify-content:start;font-size:14px;color:var(--fg)}
+.throws .pbtns button{flex:1;width:auto;height:36px}
+.putt:first-child{border-top:0}
+.ft{font-family:var(--display);font-weight:800;font-size:28px;line-height:1}
+.ft small{font-size:13px;color:var(--muted);font-weight:600}
+.bar{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .2s}
+.pbtns{display:flex;gap:6px}
+.pbtns button{width:52px;height:44px;padding:0;font-family:var(--display);font-size:16px;text-transform:uppercase}
+.make{background:var(--good);border-color:var(--good);color:#fff}
+.miss{color:var(--bad)}
+.dist-edit{display:flex;gap:6px;flex-wrap:wrap}
+.dist-edit .d{display:flex;align-items:center;gap:2px;background:var(--sunk);border-radius:8px;padding:4px}
+.dist-edit input{width:64px;padding:6px;text-align:center}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:1fr 1fr 1fr;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+nav.tabs button{border:0;border-radius:0;background:transparent;padding:10px 8px 12px;display:grid;justify-items:center;gap:2px;color:var(--muted);font-family:var(--display);font-size:16px;letter-spacing:.06em;text-transform:uppercase}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+nav.tabs svg{width:24px;height:24px}
+.hb{display:grid;gap:2px}
+.bar i.alt{background:var(--accent)}
+ol.rank{margin:0;padding-left:22px;display:grid;gap:6px}
+ol.rank li{padding-left:4px}
+ol.rank li>*{vertical-align:middle}
+ol.rank li{display:list-item}
+ol.rank li .big{float:right;font-size:20px}
+.rtab td{min-width:70px}
+.csel{padding:8px 4px;font-size:14px}
+.sessp{border-color:color-mix(in srgb,var(--royal) 45%,var(--line));background:color-mix(in srgb,var(--royal) 5%,var(--surface))}
+.rounds{display:grid;gap:6px}
+.rd{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:0 10px}
+.rd summary{cursor:pointer;display:flex;gap:10px;align-items:center;padding:10px 0;list-style:none}
+.rd summary::-webkit-details-marker{display:none}
+.rd summary::after{content:"▾";margin-left:auto;color:var(--muted);transition:transform .15s}
+.rd[open] summary::after{transform:rotate(180deg)}
+.rn{flex:none;font-family:var(--display);font-weight:800;font-size:16px;background:var(--royal);color:var(--royal-ink);border-radius:5px;padding:1px 7px}
+.rs{min-width:0;font-size:14px}
+.rdl{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:4px}
+.rdl li{display:flex;justify-content:space-between;gap:10px;border-top:1px dashed var(--line);padding-top:4px;font-size:14px}
+.ask.askq{background:color-mix(in srgb,var(--royal) 8%,var(--surface));border-color:color-mix(in srgb,var(--royal) 40%,transparent)}
+.ask{display:grid;gap:10px;background:color-mix(in srgb,var(--bad) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:8px;padding:12px}
+.ask .row{justify-content:flex-end}
+.dangerbtn{background:var(--bad);border-color:var(--bad);color:#fff}
+input:focus,select:focus{border-color:var(--accent);background:var(--surface)}
+input::selection{background:var(--accent);color:#fff}
+body.typing nav.tabs{display:none}
+body.typing{padding-bottom:40vh}
+body.typing .toast{bottom:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.drow{display:grid;grid-template-columns:22px 86px minmax(0,1fr) 36px;gap:8px;align-items:center;padding:5px 0}
+.drow-head{text-transform:uppercase;letter-spacing:.06em;font-weight:700;font-size:11px;padding:0}
+.drow .ghost{padding:6px 4px}
+.tablewrap{overflow-x:auto}
+table.acc{width:100%;border-collapse:collapse;min-width:320px}
+table.acc th,table.acc td{padding:6px 4px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}
+table.acc thead th{border-top:0;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+table.acc tbody th.ft{font-size:24px;white-space:nowrap}
+table.acc td input{text-align:center;padding:8px 4px}
+.headin{font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:13px;text-align:center;background:var(--sunk);border-style:dashed;padding:6px 4px;color:var(--fg)}
+.hbtn{margin-left:auto;align-self:center;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.5);color:var(--royal-ink);border-radius:999px;padding:6px 12px;font-size:13px}
+.hbtn[aria-pressed="true"]{background:var(--royal-ink);color:var(--royal)}
+.chips-wrap{flex-wrap:wrap;overflow:visible}
+.ctypebar{gap:8px;flex-wrap:nowrap}
+.ctypebar select{flex:1;width:auto;padding:7px 8px;font-size:15px}
+.ctypebar .ghost{white-space:nowrap}
+.seg4{grid-template-columns:repeat(5,minmax(0,1fr))}
+.seg4 button{font-size:14px;padding:8px 1px}
+.chartp{padding:10px}
+.mylvl{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)}
+.mylvl select{width:auto;padding:4px 6px;font-size:14px}
+.chartwrap{max-width:420px;width:100%;margin:0 auto}
+.chartwrap svg{width:100%;height:auto;display:block}
+.chartwrap .gl{stroke:var(--line);stroke-width:1}
+.chartwrap .gmaj{stroke:color-mix(in srgb,var(--muted) 55%,transparent);stroke-width:1}
+.chartwrap .gmid{stroke:color-mix(in srgb,var(--royal) 55%,transparent);stroke-width:1.5;stroke-dasharray:4 4}
+.chartwrap .glbl{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.chartwrap .tee{fill:var(--fg)}
+.chartwrap .halo{stroke:color-mix(in srgb,var(--fg) 45%,transparent)}
+.chartwrap .endpt{stroke:color-mix(in srgb,var(--fg) 60%,transparent)}
+.legend{list-style:none;margin:0;padding:0;display:grid}
+.legend li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:14px;padding:6px 0;border-top:1px solid var(--line)}
+.lsw{width:14px;height:6px;border-radius:3px;box-shadow:0 0 0 1px color-mix(in srgb,var(--fg) 40%,transparent)}
+.lname{min-width:0;overflow-wrap:anywhere}
+.typebar{position:fixed;top:0;left:0;right:0;z-index:30;background:var(--royal);color:var(--royal-ink);display:grid;gap:2px;
+  padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.tb-l{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-v{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;overflow-wrap:anywhere;min-height:33px}
+.tb-v.tb-empty::after{content:"Start typing…";font-family:var(--body);font-weight:400;font-size:16px;opacity:.7}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:20}
+.confirm{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header><div class="hwrap"><div class="logo">J<b>D</b>G</div><div class="sub">Just Disc Golf</div></div></header>
+<main id="app"></main>
+<nav class="tabs" aria-label="Sections">
+  <button id="tab-bag" data-tab="bag" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="7" width="14" height="14" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><path d="M8 12h8"/></svg>Bag</button>
+  <button id="tab-practice" data-tab="practice">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v15"/><path d="M6 6h12l-2 5H8z"/><path d="M8 18h8"/><path d="M12 18l-3 3M12 18l3 3"/></svg>Practice</button>
+  <button id="tab-results" data-tab="results">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h16"/><rect x="6" y="11" width="3" height="6"/><rect x="11" y="6" width="3" height="11"/><rect x="16" y="13" width="3" height="4"/></svg>Results</button>
+</nav>
+<div id="typebar" class="typebar" hidden aria-hidden="true"><span class="tb-l"></span><span class="tb-v"></span></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+const STATUSES=[["bag","In the bag"],["shelf","Shelf"],["found","Found"],["stolen","Stolen"],["sold","Sold"]];
+const secObjs=()=>{const c=S.settings.sections;return Array.isArray(c)&&c.length?c.map(x=>({...x})):STATUSES.map(([key,label])=>({key,label}))};
+const sections=()=>secObjs().map(x=>[x.key,x.label]);
+const inAll=k=>{const o=secObjs().find(x=>x.key===k);return !o||o.all!==false};
+const allDiscs=()=>S.discs.filter(d=>inAll(d.status));
+const DISC_TYPES=["Driver","Fairway","Midrange","Putter"];
+const STABILITY=["Overstable","Stable","Straight","Understable","Very understable"];
+const THROWS=["Backhand","Forehand","Tomahawk","Thumber","Roller","Overhand","Hyzer","Anhyzer"];
+const DEFAULT_PUTTS=[15,20,25,30];
+const DEFAULT_ACC=[150,200,250,300,350,400];
+const DEFAULT_ACC_HEADS={throws:"Throws",c1:"Circle 1",c2:"Circle 2",closest:"Closest"};
+const COLORS=[["Red","#d63b2f"],["Orange","#ee7a22"],["Yellow","#f2c81c"],["Green","#3aa655"],["Blue","#2f6fd6"],["Purple","#7d4bc4"],["Pink","#e45c9b"],["White","#f7f7f2"],["Black","#1c1c1c"],["Gray","#8d948f"],["Clear","#dde2de"],["Glow","#d8f5a8"]];
+const COLORS_AZ=COLORS.slice().sort((a,b)=>a[0].localeCompare(b[0]));
+const discColors=d=>Array.isArray(d.colors)?d.colors:(d.color?[d.color]:[]);
+const customColors=()=>Array.isArray(S.settings.customColors)?S.settings.customColors:[];
+const allColors=()=>COLORS.concat(customColors().filter(c=>!COLORS.some(b=>b[0].toLowerCase()===String(c.name).toLowerCase())).map(c=>[c.name,c.hex])).sort((a,b)=>a[0].localeCompare(b[0]));
+const colorVal=n=>(allColors().find(c=>c[0]===n)||[])[1];
+const statusLabel=s=>(sections().find(x=>x[0]===s)||STATUSES.find(x=>x[0]===s)||[s,s])[1];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>{try{return new Date(d+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}catch(e){return d}};
+const pct=(m,a)=>a?Math.round(m/a*100):0;
+
+/* ---------- storage: artifact db, with browser storage fallback ---------- */
+const COLLS=["discs","distance","accuracy","putts"];
+const S={discs:[],distance:[],accuracy:[],putts:[],settings:{putDistances:DEFAULT_PUTTS.slice()}};
+let db=null, readOnly=false;
+const LKEY="jdg-v1";
+function localLoad(){try{const v=JSON.parse(localStorage.getItem(LKEY)||"null");if(v)Object.assign(S,v)}catch(e){}}
+function localSave(){try{localStorage.setItem(LKEY,JSON.stringify(S))}catch(e){}}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+async function addRec(coll,data){
+  data.created=Date.now();
+  const id=uid();Object.keys(data).forEach(k=>{if(data[k]===null||data[k]===undefined)delete data[k]});
+  if(db){S[coll]=S[coll].concat([{id,...data}]);
+    try{await db.collection(coll).doc(id).set(data);return id}catch(e){S[coll]=S[coll].filter(x=>x.id!==id);return fail(e)}}
+  data.id=id;S[coll].push(data);localSave();render();return id;
+}
+async function updRec(coll,id,data){
+  if(db){try{await db.collection(coll).doc(id).update(data);return true}catch(e){return fail(e)}}
+  const r=S[coll].find(x=>x.id===id);if(r)Object.assign(r,data);localSave();render();return true;
+}
+async function delRec(coll,id){
+  if(db){try{await db.collection(coll).doc(id).delete();return true}catch(e){return fail(e)}}
+  S[coll]=S[coll].filter(x=>x.id!==id);localSave();render();return true;
+}
+async function saveSettings(){
+  if(db){try{await db.doc("settings/main").set(S.settings)}catch(e){fail(e)}}
+  else{localSave()}
+  render();
+}
+function fail(e){
+  if(e&&e.code==="invalid_argument"){readOnly=true;toast("This copy is view-only");}
+  else if(e&&e.code==="quota_exceeded"){toast("Storage is full. Delete some old entries.");}
+  else toast("Couldn't save ("+(e&&e.code||"error")+"). Try again.");
+  render();return false;
+}
+
+let tt;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
+
+/* ---------- UI state ---------- */
+const U={sort:"speed",sortDir:"desc",tab:"bag",filter:"bag",practice:"distance",editDisc:null,showDiscForm:false,confirm:null,
+  session:{},editingPutts:false,distDraft:null,acc:{},editingAcc:false,accDraft:null,dRows:[],dThrow:"Backhand",dDate:null};
+const blankRows=(n,disc="")=>Array.from({length:n},()=>({dist:"",disc}));
+U.dRows=blankRows(5);
+try{const v=JSON.parse(localStorage.getItem("jdg-ui")||"null");if(v){U.tab=v.tab||U.tab;U.practice=v.practice||U.practice;U.filter=v.filter||U.filter;U.sort=v.sort||U.sort;U.sortDir=v.sortDir||U.sortDir}}catch(e){}
+const rememberUI=()=>{try{localStorage.setItem("jdg-ui",JSON.stringify({tab:U.tab,practice:U.practice,filter:U.filter,sort:U.sort,sortDir:U.sortDir}))}catch(e){}};
+if(["bag","practice","results"].includes(location.hash.slice(1)))U.tab=location.hash.slice(1);
+
+/* ---------- render ---------- */
+const app=document.getElementById("app");
+function render(){
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current",!U.view&&b.dataset.tab===U.tab?"page":"false"));
+  const cb=document.getElementById("chartBtn");if(cb)cb.setAttribute("aria-pressed",U.view==="chart");
+  app.innerHTML=U.view==="chart"?chartView():U.tab==="bag"?bagView():U.tab==="results"?resultsView():practiceView();
+  app.querySelectorAll("input").forEach(i=>i.setAttribute("autocomplete","off"));
+  if(document.getElementById("c-wheel"))drawWheel();
+}
+
+function discOptions(sel,show){
+  const usable=allDiscs().filter(d=>d.status!=="sold"&&d.status!=="stolen").sort((a,b)=>(b.speed||0)-(a.speed||0));
+  return `<option value="">Choose a disc</option>`+usable.map(d=>`<option value="${esc(d.id)}" ${sel===d.id?"selected":""}>${esc(d.name)}${show==="color"?(discColors(d).length?" · "+esc(discColors(d).join("/")):""):(d.plastic?" · "+esc(d.plastic):"")}</option>`).join("");
+}
+const discName=id=>{if(!id)return "No disc";const d=S.discs.find(x=>x.id===id);return d?d.name:"Deleted disc"};
+const closestName=v=>typeof v==="number"?v+" ft":discName(v);
+
+function bagView(){
+  const SEC=sections();
+  const counts=Object.fromEntries(SEC.map(([k])=>[k,S.discs.filter(d=>d.status===k).length]));
+  const list=sortDiscs(U.filter==="all"?allDiscs():S.discs.filter(d=>d.status===U.filter));
+  const showForm=U.showDiscForm&&!U.editDisc;
+  return `
+  <div class="row between"><h2>My discs</h2>${readOnly?"":`<button class="primary" data-act="newDisc">+ Add disc</button>`}</div>
+  <div class="secbar"><div class="chips" role="group" aria-label="Sections">
+    <button class="chip" data-filter="all" aria-pressed="${U.filter==="all"}">All<span class="c">${allDiscs().length}</span></button>
+    ${SEC.map(([k,l])=>`<button class="chip${inAll(k)?"":" notall"}" data-filter="${esc(k)}" aria-pressed="${U.filter===k}" ${inAll(k)?"":`title="Not counted in All"`}>${esc(l)}<span class="c">${counts[k]||0}</span></button>`).join("")}
+    ${readOnly?"":`<button class="chip secadd" data-act="addSection" aria-label="Add a section">+</button>`}
+  </div></div>
+  ${readOnly?"":`<div class="sechint">Hold a section and slide it to reorder.</div>`}
+  <button class="chartlink" data-act="openChart"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21c0-6 6-8 6-13a4 4 0 0 0-8 0"/><circle cx="12" cy="21" r="1"/></svg>Flight chart<span class="small muted">See how your discs fly</span><span aria-hidden="true" class="chartgo">›</span></button>
+  ${U.filter!=="all"&&!readOnly&&SEC.some(x=>x[0]===U.filter)?`<div class="secname"><label for="sec-name" class="sortlbl">Section name</label><input id="sec-name" data-secname="${esc(U.filter)}" maxlength="30" value="${esc(statusLabel(U.filter))}" aria-label="Section name">
+    ${U.confirm!=="delsec"&&SEC.length>1?`<button class="ghost danger" data-act="askDelSection" aria-label="Delete this section">Delete</button>`:""}</div>
+  <label class="alltog"><input type="checkbox" id="sec-all" data-secall="${esc(U.filter)}" ${inAll(U.filter)?"checked":""}><span class="sw" aria-hidden="true"></span>Include this section in All</label>
+  ${U.confirm==="delsec"?`<div class="ask" role="alertdialog"><span><strong>Delete the “${esc(statusLabel(U.filter))}” section?</strong>${counts[U.filter]?` It has ${counts[U.filter]} disc${counts[U.filter]===1?"":"s"} in it.`:""}</span>
+    ${counts[U.filter]?`<label class="secmove">Move its discs to<select id="sec-move">${SEC.filter(([k])=>k!==U.filter).map(([k,l])=>`<option value="${esc(k)}">${esc(l)}</option>`).join("")}<option value="__delete">Delete the discs too</option></select></label>`:""}
+    <div class="row"><button class="ghost" data-act="cancel">No, keep it</button><button class="dangerbtn" data-act="delSection">Yes, delete</button></div></div>`:""}`:""}
+  <div class="row sortbar"><label for="sortby" class="sortlbl">Sort</label>
+    <select id="sortby" data-sort="1">${SORTS.map(([k,l])=>`<option value="${k}" ${U.sort===k?"selected":""}>${l}</option>`).join("")}</select>
+    <button class="ghost dirbtn" data-act="sortDir" aria-label="Sort ${U.sortDir==="desc"?"descending":"ascending"}, tap to flip">${U.sortDir==="desc"?"↓ High–low":"↑ Low–high"}</button></div>
+  ${showForm?discForm(null):""}
+  <div class="list">
+  ${list.length?list.map(discRow).join(""):`<div class="empty"><strong>${S.discs.length?"Nothing here yet":"Your bag is empty"}</strong>${S.discs.length?"No discs have this status.":"Tap “Add disc” to log your first one with its plastic, flight numbers and stability."}</div>`}
+  </div>`;
+}
+const SORTS=[["name","Name"],["type","Type"],["speed","Speed"],["glide","Glide"],["turn","Turn"],["fade","Fade"],["color","Color"]];
+function sortDiscs(list){
+  const k=U.sort||"speed",dir=U.sortDir==="asc"?1:-1,byName=(a,b)=>String(a.name||"").localeCompare(String(b.name||""));
+  return list.slice().sort((a,b)=>{
+    if(k==="name")return dir*byName(a,b);
+    if(k==="type"){const ia=DISC_TYPES.indexOf(a.type),ib=DISC_TYPES.indexOf(b.type);if(ia<0&&ib<0)return byName(a,b);if(ia<0)return 1;if(ib<0)return -1;return dir*(ia-ib)||(b.speed||0)-(a.speed||0)}
+    if(k==="color"){const ca=discColors(a)[0],cb=discColors(b)[0];if(!ca&&!cb)return byName(a,b);if(!ca)return 1;if(!cb)return -1;return dir*ca.localeCompare(cb)||byName(a,b)}
+    const va=a[k],vb=b[k];const na=va==null||va==="",nb=vb==null||vb==="";if(na&&nb)return byName(a,b);if(na)return 1;if(nb)return -1;
+    return dir*(+va-+vb)||byName(a,b)});
+}
+function openDisc(id){
+  U.discDraft=null;U.copying=null;U.colorAdd=null;U.editDisc=null;U.showDiscForm=false;U.confirm=null;
+  U.expand=U.expand===id?null:id;render();
+  if(U.expand)setTimeout(()=>{const el=document.querySelector(`.disc[data-id="${CSS.escape(id)}"]`);if(!el)return;const r=el.getBoundingClientRect();if(r.top<70||r.bottom>window.innerHeight-90)el.scrollIntoView({block:"start",behavior:"smooth"})},30);
+}
+function discLog(d){const L=S.distance.filter(l=>l.disc===d.id&&l.distance>0);if(!L.length)return "";const mx=Math.max(...L.map(l=>l.distance)),av=Math.round(L.reduce((s,l)=>s+l.distance,0)/L.length);
+  return `<div class="dd"><span class="k">Practice</span><span>Longest ${mx} ft · avg ${av} ft · ${L.length} throw${L.length===1?"":"s"}</span></div>`}
+function discDetail(d){
+  const conf=U.confirm==="disc:"+d.id,cols=discColors(d);
+  const nums=[["Speed",d.speed],["Glide",d.glide],["Turn",d.turn],["Fade",d.fade]];
+  return `<div class="dexp">
+    ${readOnly?"":`<div class="row between dexp-actions">
+      ${conf?`<div class="confirm"><span class="small"><strong>Delete ${esc(d.name)}?</strong></span><button class="dangerbtn" data-act="delDisc" data-id="${esc(d.id)}">Yes, delete</button><button class="ghost" data-act="cancel">No</button></div>`
+        :`<button class="primary" data-act="editDisc" data-id="${esc(d.id)}">Edit disc</button>
+        <div class="row" style="gap:2px"><button class="ghost" data-act="copyDisc" data-id="${esc(d.id)}">Copy</button><button class="ghost danger" data-act="askDel" data-id="${esc(d.id)}">Delete</button></div>`}
+    </div>`}
+    <div class="fn4">${nums.map(([k,v])=>`<div><span class="k">${k}</span><strong class="num">${esc(v??"–")}</strong></div>`).join("")}</div>
+    <div class="ddl">
+      <div class="dd"><span class="k">Type</span><span>${esc(d.type||"—")}</span></div>
+      <div class="dd"><span class="k">Stability</span><span>${esc(d.stability||"—")}</span></div>
+      <div class="dd"><span class="k">Plastic</span><span>${esc(d.plastic||"—")}</span></div>
+      <div class="dd"><span class="k">Weight</span><span>${d.weight?esc(d.weight)+" g":"—"}</span></div>
+      <div class="dd"><span class="k">Colors</span><span>${cols.length?cols.map(c=>`<span class="cname"><span class="dot" style="background:${colorVal(c)||"transparent"}"></span>${esc(c)}</span>`).join(""):"—"}</span></div>
+      ${d.myFlight?`<div class="dd"><span class="k">For you</span><span>${esc((MY_FLIGHT.find(x=>x[0]===d.myFlight)||[,""])[1])}</span></div>`:""}
+      <div class="dd"><span class="k">Aces</span><span class="acerow"><strong class="num">${+d.aces||0}</strong>${readOnly?"":`<button class="ghost aceadd" data-act="addAce" data-id="${esc(d.id)}">+1 ace</button>`}</span></div>
+      <div class="dd"><span class="k">Status</span><span><span class="tag st-${esc(d.status)}">${esc(statusLabel(d.status))}</span></span></div>
+      ${discLog(d)}
+    </div>
+    ${d.notes?`<div class="dnote"><span class="k">Notes</span><p>${esc(d.notes)}</p></div>`:""}
+  </div>`;
+}
+function rimOf(d){const c=discColors(d);return c.includes(d.rim)?d.rim:c[0]}
+function dotBg(cols,style,rim){const v=cols.map(c=>colorVal(c)||"transparent");if(v.length===1)return v[0];
+  if(style==="orbit"){const r=cols.includes(rim)?rim:cols[0],rv=colorVal(r)||"transparent",inner=cols.filter(c=>c!==r);
+    return `radial-gradient(circle,transparent 0 46%,${rv} 47%),${inner.length===1?colorVal(inner[0])||"transparent":dotBg(inner)}`}
+  if(v.length===2)return `linear-gradient(90deg,${v[0]} 50%,${v[1]} 50%)`;
+  const step=360/v.length;return `conic-gradient(${v.map((c,i)=>`${c} ${i*step}deg ${(i+1)*step}deg`).join(",")})`}
+function discRow(d){
+  const exp=U.expand===d.id,editing=U.editDisc===d.id;
+  return `<div class="disc${U.flash&&U.flash===d.id?" flash":""}${exp?" open":""}" data-id="${esc(d.id)}">
+    <div class="dhead" data-open="${esc(d.id)}" role="button" tabindex="0" aria-expanded="${exp}" aria-label="${exp?"Close":"Open"} ${esc(d.name)}">
+      <div style="min-width:0">
+        <div class="dtop">${d.type?`<span class="dtype">${esc(d.type)}</span>`:""}<span class="dname">${esc(d.name)}</span>${d.plastic||d.weight?`<span class="plas">${esc([d.plastic,d.weight?d.weight+"g":""].filter(Boolean).join(" "))}</span>`:""}</div>
+        <div class="dmeta"><div class="nums" title="Speed / Glide / Turn / Fade"><span>${esc(d.speed??"–")}</span><span>${esc(d.glide??"–")}</span><span>${esc(d.turn??"–")}</span><span>${esc(d.fade??"–")}</span></div>${discColors(d).length?`<span class="dot" title="${esc(discColors(d).join(" / "))}" style="background:${dotBg(discColors(d),d.colorStyle,d.rim)}"></span>`:""}${d.stability?`<span class="stab">${esc(d.stability)}</span>`:""}${U.filter==="all"?`<span class="tag st-${esc(d.status)}">${esc(statusLabel(d.status))}</span>`:""}${+d.aces?`<span class="acebadge">${+d.aces} ace${+d.aces===1?"":"s"}</span>`:""}</div>
+      </div>
+      <span class="chev" aria-hidden="true">▾</span>
+    </div>
+    ${exp?(editing?discForm(d):discDetail(d)):""}
+  </div>`;
+}
+function hsvHex(h,s,v){const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};return "#"+[f(5),f(3),f(1)].map(x=>Math.round(x*255).toString(16).padStart(2,"0")).join("")}
+function shadeBtns(){const c=U.colorAdd;if(!c)return "";return [1,0.82,0.64,0.46,0.3,0.15].map(v=>`<button type="button" class="cwshade${Math.abs(c.v-v)<0.01?" on":""}" data-act="cShade" data-v="${v}" style="background:${hsvHex(c.h,c.s,v)}" aria-label="Shade ${Math.round(v*100)}%"></button>`).join("")}
+function drawWheel(){const cv=document.getElementById("c-wheel");if(!cv)return;const ctx=cv.getContext("2d"),W=cv.width,R=W/2,img=ctx.createImageData(W,W);
+  for(let y=0;y<W;y++)for(let x=0;x<W;x++){const dx=x-R,dy=y-R,r=Math.hypot(dx,dy),i=(y*W+x)*4;if(r>R){img.data[i+3]=0;continue}
+    const h=(Math.atan2(dy,dx)*180/Math.PI+360)%360,sv=r/R,hx=hsvHex(h,sv,1);img.data[i]=parseInt(hx.slice(1,3),16);img.data[i+1]=parseInt(hx.slice(3,5),16);img.data[i+2]=parseInt(hx.slice(5,7),16);img.data[i+3]=r>R-1.5?Math.round((R-r)/1.5*255):255}
+  ctx.putImageData(img,0,0);updWheel()}
+function updWheel(){const c=U.colorAdd;if(!c)return;const m=document.getElementById("c-mark"),p=document.getElementById("c-prev"),sh=document.getElementById("c-shades");
+  if(m){const a=c.h*Math.PI/180;m.style.left=(50+Math.cos(a)*c.s*50)+"%";m.style.top=(50+Math.sin(a)*c.s*50)+"%"}
+  if(p)p.style.background=c.hex;if(sh)sh.innerHTML=shadeBtns()}
+function pickWheel(e){const cv=document.getElementById("c-wheel"),c=U.colorAdd;if(!cv||!c)return;const r=cv.getBoundingClientRect(),pt=e.touches?e.touches[0]:e;
+  const dx=(pt.clientX-r.left)/r.width*2-1,dy=(pt.clientY-r.top)/r.height*2-1;c.h=(Math.atan2(dy,dx)*180/Math.PI+360)%360;c.s=Math.min(1,Math.hypot(dx,dy));if(c.v<0.15)c.v=1;c.hex=hsvHex(c.h,c.s,c.v);updWheel()}
+let wheelDrag=false;
+document.addEventListener("pointerdown",e=>{if(e.target.id==="c-wheel"){wheelDrag=true;e.preventDefault();pickWheel(e)}});
+document.addEventListener("pointermove",e=>{if(wheelDrag)pickWheel(e)});
+document.addEventListener("pointerup",()=>{wheelDrag=false});document.addEventListener("pointercancel",()=>{wheelDrag=false});
+function discForm(d){
+  d=U.discDraft||d||{status:U.filter!=="all"?U.filter:"bag",stability:"Stable"};
+  const fnum=(id,name,label,ph,val,extra="")=>`<label>${label}<span class="numwrap">${extra}<input id="${id}" name="${name}" type="text" inputmode="decimal" autocomplete="off" placeholder="${ph}" value="${esc(val??"")}"></span></label>`;
+  return `<form class="panel grid" id="discForm" novalidate>
+    <h3 class="full">${d.id?"Edit disc":U.copying?"Copy of "+esc(U.copying):"Add a disc"}</h3>${!d.id&&U.copying?`<p class="small muted full" style="margin:0">Everything is copied over. Change what's different, like plastic, weight or color.</p>`:""}
+    <label class="full">Disc name<input id="f-name" name="name" required placeholder="e.g. Destroyer" value="${esc(d.name)}"></label>
+    <label>Plastic<input id="f-plastic" name="plastic" placeholder="e.g. Star" value="${esc(d.plastic)}"></label>
+    <label>Weight (g)<input id="f-weight" name="weight" type="text" inputmode="numeric" autocomplete="off" placeholder="175" value="${esc(d.weight??"")}"></label>
+    <label class="full acesf">Aces with this disc<span class="numwrap"><button type="button" class="pm" data-act="aceStep" data-n="-1" aria-label="One less ace">−</button><input id="f-aces" name="aces" type="text" inputmode="numeric" autocomplete="off" placeholder="0" value="${esc(d.aces||"")}"><button type="button" class="pm" data-act="aceStep" data-n="1" aria-label="One more ace">+</button></span></label>
+    <div class="full flight4">
+    ${fnum("f-speed","speed","Speed","12",d.speed)}
+    ${fnum("f-glide","glide","Glide","5",d.glide)}
+    ${fnum("f-turn","turn","Turn","-1",d.turn,`<button type="button" class="pm" data-act="negTurn" aria-label="Switch turn between negative and positive">±</button>`)}
+    ${fnum("f-fade","fade","Fade","2",d.fade)}
+    </div>
+    <fieldset class="full colorpick"><legend>Colors <span class="muted">(pick any)</span></legend>${allColors().map(([n,v],i)=>`<label class="cchip"><input type="checkbox" id="f-col-${i}" name="colors" value="${esc(n)}" ${discColors(d).includes(n)?"checked":""}><span class="dot" style="background:${v}"></span>${esc(n)}</label>`).join("")}
+      ${U.colorAdd?`<div class="cwheelbox">
+        <label class="cwname">Color name<input id="c-name" type="text" placeholder="e.g. Teal swirl" maxlength="24" value="${esc(U.colorAdd.name)}"></label>
+        <div class="cwrow"><div class="cwheel"><canvas id="c-wheel" width="440" height="440" aria-label="Color wheel. Tap to pick a color."></canvas><span class="cwmark" id="c-mark"></span></div>
+          <div class="cwside"><span class="cwprev" id="c-prev" style="background:${esc(U.colorAdd.hex)}"></span><span class="k">Shade</span><div class="cwshades" id="c-shades">${shadeBtns()}</div></div></div>
+        <div class="row" style="justify-content:flex-end"><button type="button" class="ghost" data-act="cancelColor">Cancel</button><button type="button" class="primary" data-act="saveColor">Add color</button></div></div>`
+        :`<button type="button" class="cchip cnew" data-act="newColor">+ Custom color</button>`}
+      ${customColors().length&&!U.colorAdd?`<button type="button" class="ghost small cmanage" data-act="manageColors">${U.colorManage?"Done":"Edit custom colors"}</button>`:""}
+      ${U.colorManage?`<div class="cmgr">${customColors().map((c,i)=>`<span class="cchip"><span class="dot" style="background:${esc(c.hex)}"></span>${esc(c.name)}<button type="button" class="ghost danger" data-act="rmColor" data-i="${i}" aria-label="Remove ${esc(c.name)}">✕</button></span>`).join("")}</div>`:""}</fieldset>
+    ${discColors(d).length>=2?`<div class="full cstyle"><span class="k">Color look</span>
+      <div class="cstyle-row"><span class="dot dotprev" style="background:${dotBg(discColors(d),d.colorStyle,d.rim)}"></span>
+        <label class="cs-opt"><input type="radio" name="colorStyle" value="split" ${d.colorStyle!=="orbit"?"checked":""}>Split</label>
+        <label class="cs-opt"><input type="radio" name="colorStyle" value="orbit" ${d.colorStyle==="orbit"?"checked":""}>Orbit</label></div>
+      ${d.colorStyle==="orbit"?`<div class="cstyle-row"><label class="cs-rim">Rim<select name="rim" id="f-rim">${discColors(d).map(c=>`<option ${rimOf(d)===c?"selected":""}>${esc(c)}</option>`).join("")}</select></label>${discColors(d).length===2?`<button type="button" class="ghost" data-act="swapRim">⇄ Swap rim and center</button>`:""}</div>`:""}
+    </div>`:""}
+    <label>Type<select id="f-type" name="type"><option value="">—</option>${DISC_TYPES.map(t=>`<option ${d.type===t?"selected":""}>${t}</option>`).join("")}</select></label>
+    <label>Stability<select id="f-stab" name="stability">${STABILITY.map(s=>`<option ${d.stability===s?"selected":""}>${s}</option>`).join("")}</select></label>
+    <label class="full">Status<select id="f-status" name="status">${sections().map(([k,l])=>`<option value="${k}" ${d.status===k?"selected":""}>${l}</option>`).join("")}</select></label>
+    <label class="full">How it flies for you<select id="f-myflight" name="myFlight">${MY_FLIGHT.map(([k,l])=>`<option value="${k}" ${(d.myFlight||"")===k?"selected":""}>${l}</option>`).join("")}</select></label>
+    <details class="full fnotes" ${d.notes?"open":""}><summary>Notes${d.notes?"":" <span class=\"muted\">(optional)</span>"}</summary><textarea id="f-notes" name="notes" rows="2" placeholder="e.g. Beat-in, great for hyzer flips" aria-label="Notes">${esc(d.notes||"")}</textarea></details>
+    <div class="full row between">
+      ${d.id?`<div class="row" style="gap:2px"><button type="button" class="ghost danger" data-act="askDel" data-id="${esc(d.id)}">Delete</button><button type="button" class="ghost" data-act="copyDisc" data-id="${esc(d.id)}">Copy</button></div>`:"<span></span>"}
+      <div class="row"><button type="button" class="ghost" data-act="closeDisc">Cancel</button><button class="primary" type="button" data-act="saveDisc">${d.id?"Save":"Add to list"}</button></div>
+    </div>
+    <input type="hidden" name="id" value="${esc(d.id||"")}">
+  </form>`;
+}
+
+function practiceView(){
+  const seg=[["distance","Distance"],["accuracy","Accuracy"],["putting","Putting"]];
+  return `<h2>Practice</h2>
+  <div class="seg" role="group" aria-label="Practice type">${seg.map(([k,l])=>`<button data-practice="${k}" aria-pressed="${U.practice===k}">${l}</button>`).join("")}</div>
+  ${U.practice==="distance"?distanceView():U.practice==="accuracy"?accuracyView():puttingView()}`;
+}
+function throwSelect(id,sel){return `<select id="${id}" name="throw">${THROWS.map(t=>`<option ${sel===t?"selected":""}>${t}</option>`).join("")}</select>`}
+function noDiscsHint(){return S.discs.length?"":`<p class="small muted full" style="margin:0">Add discs on the Bag tab to pick them here.</p>`}
+
+function distanceView(){
+  const logs=S.distance.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.created-a.created);
+  const best=logs.reduce((m,l)=>l.distance>(m?.distance||0)?l:m,null);
+  const byType={};logs.forEach(l=>{byType[l.throw]=Math.max(byType[l.throw]||0,l.distance)});
+  return `
+  ${readOnly?"":`<div class="panel quicklog">
+    <div class="row between"><h3>Log a throw</h3><select id="q-throw" class="qthrow" data-q="throw" aria-label="Type of throw">${THROWS.map(t=>`<option ${(U.dThrow||"Backhand")===t?"selected":""}>${t}</option>`).join("")}</select></div>
+    <div class="qline">
+      <span class="qwrap"><input id="q-dist" class="pin qdist" type="number" inputmode="numeric" enterkeyhint="next" min="1" max="1500" placeholder="0" aria-label="Throw distance in feet"><small>ft</small></span>
+      <select id="q-disc" data-q="disc" aria-label="Disc thrown">${discOptions(U.dDisc||"","color").replace("Choose a disc","No disc")}</select>
+    </div>
+    ${U.rounds.distance&&U.rounds.distance.length?`<div class="ask askq"><span>You have ${U.rounds.distance.length} unsaved distance round${U.rounds.distance.length===1?"":"s"} from before.</span><div class="row"><button class="primary" data-act="saveWhole" data-type="distance">Save them</button></div></div>`:""}
+  </div>`}
+  ${todayPanel(logs)}
+  ${logs.length?`<div class="stats">
+    <div class="stat"><div class="k">Longest</div><div class="big">${best.distance}<small>ft</small></div><div class="small muted">${esc(discName(best.disc))}</div></div>
+    ${Object.entries(byType).map(([t,v])=>`<div class="stat"><div class="k">Best ${esc(t)}</div><div class="big">${v}<small>ft</small></div></div>`).join("")}
+  </div>`:""}
+  <div class="panel"><h3>Throw log</h3><div>
+  ${logs.length?logs.map(l=>logRow("distance",l,`<div class="dname">${esc(discName(l.disc))}</div><div class="small muted">${esc(l.throw)} · ${fmtDate(l.date)}</div>`,`<div class="big">${l.distance}<small>ft</small></div>`)).join("")
+   :`<div class="empty"><strong>No throws yet</strong>Pick a disc, enter how far it went and the throw type.</div>`}
+  </div></div>`;
+}
+function logQuick(){U.qPending=false;return logThrowNow()}
+let qSaving=false;
+async function logThrowNow(){if(qSaving)return;const inp=document.getElementById("q-dist"),v=parseInt(inp?.value,10);
+  if(!(v>0)){toast("Enter how far it went");inp?.focus();return}
+  U.dThrow=document.getElementById("q-throw").value;U.dDisc=document.getElementById("q-disc").value;qSaving=true;
+  try{if(await addRec("distance",{disc:U.dDisc||"",distance:v,throw:U.dThrow,date:today(),session:"d"+today()})){render();toast(v+" ft saved");setTimeout(()=>document.getElementById("q-dist")?.focus(),30)}}finally{qSaving=false}}
+function focusQuick(){if(U.tab!=="practice"||U.practice!=="distance"||U.view)return;const i=document.getElementById("q-dist");if(i){try{i.focus({preventScroll:true})}catch(e){i.focus()}}}
+function todayPanel(logs){
+  const t=logs.filter(l=>l.date===today());if(!t.length)return "";
+  const av=Math.round(t.reduce((a,l)=>a+l.distance,0)/t.length),mx=Math.max(...t.map(l=>l.distance));
+  return `<div class="panel"><div class="row between"><h3>Today</h3><span class="small muted num">${t.length} throw${t.length===1?"":"s"} · avg ${av} ft · best ${mx} ft</span></div></div>`;
+}
+function logRow(coll,l,left,right){
+  const key=coll+":"+l.id,conf=U.confirm===key;
+  return `<div class="log"><div style="min-width:0">${left}</div><div class="row" style="gap:6px">${right}
+    ${readOnly?"":conf?`<button class="danger" data-act="delLog" data-coll="${coll}" data-id="${esc(l.id)}">Delete</button><button class="ghost" data-act="cancel">Keep</button>`
+      :`<button class="ghost" data-act="askLog" data-key="${esc(key)}" aria-label="Delete entry">✕</button>`}</div></div>`;
+}
+
+const putDists=()=>S.settings.putDistances||DEFAULT_PUTTS;
+const accRowsCfg=()=>Array.isArray(S.settings.accRows)&&S.settings.accRows.length?S.settings.accRows:(S.settings.accDistances||DEFAULT_ACC).map(d=>({dist:d,throws:accThrows(d)}));
+function accThrows(d){const v=(S.settings.accThrows||{})[d];return v>0?v:5}
+function accHeads(){return {...DEFAULT_ACC_HEADS,...(S.settings.accHeads||{})}}
+function accuracyView(){
+  const dists=S.settings.accDistances||DEFAULT_ACC;
+  const cfg=accRowsCfg();
+  const H=accHeads();
+  const logs=S.accuracy.filter(l=>Array.isArray(l.rows)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.created-a.created);
+  const best={};logs.forEach(l=>l.rows.forEach(r=>{if(r.closest!=null&&r.closest!==""&&(best[r.dist]==null||+r.closest<best[r.dist]))best[r.dist]=+r.closest}));
+  const editor=U.editingAcc?`<div class="panel"><h3>Accuracy distances</h3>
+    <div class="dist-edit">${(U.accDraft||dists).map((d,i)=>`<div class="d"><input id="ad-${i}" type="number" inputmode="numeric" min="1" max="1000" value="${d}" data-ad="${i}" aria-label="Distance ${i+1} in feet"><span class="small muted">ft</span><button class="ghost" data-act="rmAcc" data-i="${i}" aria-label="Remove">✕</button></div>`).join("")}
+    <button data-act="addAcc">+ Add</button></div>
+    <div class="row" style="justify-content:space-between"><button class="ghost" data-act="resetAcc">Reset to 150–400</button>
+    <div class="row"><button class="ghost" data-act="cancelAcc">Cancel</button><button class="primary" data-act="saveAcc">Save distances</button></div></div></div>`:"";
+  const cell=(i,d,k,ph)=>`<td><input id="ac-${i}-${k}" tabindex="${10+({throws:0,c1:1,c2:2}[k])*200+i}" data-acell="${i}" data-k="${k}" data-col="a-${k}" enterkeyhint="next" type="number" inputmode="numeric" min="0" placeholder="${k==="throws"?"":ph}" value="${esc(U.acc[i]?.[k]??(k==="throws"?ph:""))}" ${readOnly?"disabled":""} aria-label="${esc(H[k])} at ${d} feet"></td>`;
+  return `${editor}${!U.active.accuracy&&!readOnly?setupView("accuracy")+sessionPanel("accuracy"):`
+  <div class="panel">
+    <div class="row between"><h3>Accuracy · ${roundTitle("accuracy")}</h3>${readOnly?"":`<button class="ghost" data-act="suOpen" data-type="accuracy">Change setup</button>`}</div>
+    <div class="tablewrap"><table class="acc">
+      <thead><tr><th>Distance</th>
+        ${["throws","c1","c2","closest"].map(k=>`<th><input id="ah-${k}" class="headin" data-ahead="${k}" value="${esc(H[k])}" maxlength="20" ${readOnly?"disabled":""} aria-label="Column name"></th>`).join("")}
+      </tr></thead>
+      <tbody>${cfg.map((c,i)=>{const d=c.dist;return `<tr><th class="ft num" scope="row">${d}<small>ft</small></th>${cell(i,d,"throws",c.throws)}${cell(i,d,"c1","0")}${cell(i,d,"c2","0")}<td><select id="ac-${i}-closest" tabindex="-1" class="csel" data-acell="${i}" data-k="closest" ${readOnly?"disabled":""} aria-label="${esc(H.closest)} disc at ${d} feet">${discOptions(U.acc[i]?.closest).replace("Choose a disc","Disc")}</select></td></tr>`}).join("")}</tbody>
+    </table></div>
+    <p class="small muted" style="margin:0">Column names are editable. Tap one to rename it.</p>
+    ${roundButtons("accuracy","clearAcc")}
+  </div>${sessionPanel("accuracy")}`}
+  <div class="panel"><h3>Past sessions</h3><div>
+  ${logs.length?logs.map(l=>{const h=l.heads||H;
+    if(Array.isArray(l.rounds))return logRow("accuracy",l,`<div class="dname">${fmtDate(l.date)} · ${l.rounds.length} round${l.rounds.length===1?"":"s"}</div><div class="small muted num">${l.rounds.map((r,i)=>`R${i+1}: ${roundSummary("accuracy",r)}`).join("<br>")}</div>`,"");
+    return logRow("accuracy",l,`<div class="dname">${fmtDate(l.date)}</div><div class="small muted num">${l.rows.map(r=>`${r.dist}′${r.throws!=null?` (${r.throws} throws)`:""}: ${esc(h.c1)} ${r.c1??0}, ${esc(h.c2)} ${r.c2??0}${r.closest?`, ${esc(h.closest)}: ${esc(closestName(r.closest))}`:""}`).join("<br>")}</div>`,"")}).join("")
+   :`<div class="empty"><strong>No sessions yet</strong>Fill in the chart after your throws, then save the session.</div>`}
+  </div></div>`;
+}
+
+function pctLine(d,s,all){return `<strong>${s.a?pct(s.m,s.a)+"%":"–"}</strong>${all[d]?`<small>all-time ${pct(all[d].m,all[d].a)}%</small>`:""}`}
+function puttAll(){const all={};S.putts.forEach(p=>(p.results||[]).forEach(r=>{const a=all[r.dist]||(all[r.dist]={m:0,a:0});a.m+=r.made;a.a+=r.att}));return all}
+function refreshPutt(i){const s=U.session[i]||{m:0,a:0};const p=document.getElementById("pp-"+i);
+  if(p)p.innerHTML=pctLine(putDists()[i],s,puttAll())}
+function puttingView(){
+  const dists=S.settings.putDistances||DEFAULT_PUTTS;
+  const all={};S.putts.forEach(p=>(p.results||[]).forEach(r=>{const a=all[r.dist]||(all[r.dist]={m:0,a:0});a.m+=r.made;a.a+=r.att}));
+  const sessTotal=Object.values(U.session).reduce((s,v)=>s+v.a,0);
+  const logs=S.putts.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.created-a.created);
+  const editor=U.editingPutts?`<div class="panel"><div class="row between"><h3>Putting distances</h3></div>
+    <div class="dist-edit">${(U.distDraft||dists).map((d,i)=>`<div class="d"><input id="pd-${i}" type="number" inputmode="numeric" min="1" max="100" value="${d}" data-pd="${i}" aria-label="Distance ${i+1} in feet"><span class="small muted">ft</span><button class="ghost" data-act="rmDist" data-i="${i}" aria-label="Remove">✕</button></div>`).join("")}
+    <button data-act="addDist">+ Add</button></div>
+    <div class="row" style="justify-content:space-between"><button class="ghost" data-act="resetDist">Reset to 15, 20, 25, 30</button>
+    <div class="row"><button class="ghost" data-act="cancelDist">Cancel</button><button class="primary" data-act="saveDist">Save distances</button></div></div></div>`:"";
+  return `${editor}${!U.active.putting&&!readOnly?setupView("putting")+sessionPanel("putting"):`
+  <div class="panel">
+    <div class="row between"><h3>Putting ·${roundTitle("putting")}</h3>${readOnly?"":`<button class="ghost" data-act="suOpen" data-type="putting">Change setup</button>`}</div>
+    ${readOnly?"":`<label class="putters">Putters<input id="p-putters" class="pin" tabindex="9" data-putters="1" data-col="putters" enterkeyhint="next" type="number" inputmode="numeric" min="0" max="100" placeholder="How many?" value="${esc(U.putters||"")}" aria-label="Number of putters, fills throws at every distance"></label>`}
+    <div class="ptab">
+      <div class="prow phead"><span>Distance</span><span>Made</span><span>Throws</span><span>Make %</span></div>
+      ${dists.map((d,i)=>{const s=U.session[i]||{m:0,a:0};return `<div class="prow">
+        <span class="pdwrap"><input id="pd-${i}" tabindex="${900+i}" class="pin pdist" data-pdist="${i}" data-col="pd" type="number" inputmode="numeric" enterkeyhint="next" min="1" max="100" value="${d}" ${readOnly?"disabled":""} aria-label="Distance in feet, line ${i+1}"><small>ft</small></span>
+        <input id="pm-${i}" tabindex="${10+i}" class="pin" data-pm="${i}" data-col="pm" type="number" inputmode="numeric" enterkeyhint="next" min="0" placeholder="0" value="${s.m||""}" ${readOnly?"disabled":""} aria-label="Putts made from ${d} feet">
+        <input id="pa-${i}" tabindex="${500+i}" class="pin" data-pa="${i}" data-col="pa" type="number" inputmode="numeric" enterkeyhint="next" min="0" placeholder="0" value="${s.a||""}" ${readOnly?"disabled":""} aria-label="Putts thrown from ${d} feet">
+        <span class="ppct num" id="pp-${i}">${pctLine(d,s,all)}</span>
+      </div>`}).join("")}
+    </div>
+    ${roundButtons("putting","clearSess")}
+  </div>${sessionPanel("putting")}`}
+  <div class="panel"><h3>Past sessions</h3><div>
+  ${logs.length?logs.map(l=>{const m=l.results.reduce((s,r)=>s+r.made,0),a=l.results.reduce((s,r)=>s+r.att,0);
+    return logRow("putts",l,`<div class="dname">${fmtDate(l.date)}${Array.isArray(l.rounds)?` · ${l.rounds.length} round${l.rounds.length===1?"":"s"}`:""}</div><div class="small muted num">${l.results.filter(r=>r.att).map(r=>`${r.dist}′ ${r.made}/${r.att}`).join(" · ")}</div>`,
+    `<div style="text-align:right"><div class="big">${pct(m,a)}<small>%</small></div><div class="small muted num">${m}/${a}</div></div>`)}).join("")
+   :`<div class="empty"><strong>No sessions yet</strong>Tap Make or Miss at each distance, then save the session.</div>`}
+  </div></div>`;
+}
+
+/* ---------- rounds & sessions ---------- */
+const RKEY="jdg-rounds";
+U.rounds={distance:[],accuracy:[],putting:[]};
+try{const v=JSON.parse(localStorage.getItem(RKEY)||"null");if(v)Object.assign(U.rounds,v)}catch(e){}
+function saveDrafts(){try{localStorage.setItem(RKEY,JSON.stringify(U.rounds))}catch(e){}}
+const numOrNull=x=>x===undefined||x===null||x===""?null:+x;
+function currentRound(type){
+  if(type==="distance"){
+    const rows=U.dRows.filter(r=>+r.dist>0);if(!rows.length)return null;
+    if(rows.some(r=>!r.disc)&&!U.dNoDisc)return {needDisc:true};
+    return {throw:U.dThrow,throws:rows.map(r=>({dist:+r.dist,disc:r.disc}))};
+  }
+  if(type==="accuracy"){
+    const rows=accRowsCfg().map((c,i)=>{const th=numOrNull(U.acc[i]?.throws);return {dist:c.dist,throws:th==null?c.throws:th,c1:numOrNull(U.acc[i]?.c1),c2:numOrNull(U.acc[i]?.c2),closest:U.acc[i]?.closest||""}}).filter(r=>r.c1!=null||r.c2!=null||r.closest);
+    return rows.length?{rows}:null;
+  }
+  if(!U.puttTouched)return null;
+  const results=putDists().map((d,i)=>{const a=U.session[i]?.a||0,m=U.session[i]?.m||0;return {dist:d,made:m,att:Math.max(a,m)}}).filter(r=>r.att).sort((x,y)=>x.dist-y.dist);
+  return results.length?{results}:null;
+}
+function resetCurrent(type,last){
+  if(type==="distance")U.dRows=blankRows(distRowsN(),last&&last.throws?last.throws[last.throws.length-1].disc:"");
+  else if(type==="accuracy"){const keep={};Object.entries(U.acc).forEach(([i,v])=>{if(v&&v.throws)keep[i]={throws:v.throws}});U.acc=keep}
+  else{U.session={};U.lastPutt=null;U.puttTouched=false;fillPutters()}
+}
+function fillPutters(){const n=+U.putters||0,pp=S.settings.putPutts||[];putDists().forEach((d,i)=>{const a=+pp[i]||n;if(a)U.session[i]={m:0,a}})}
+try{U.putters=localStorage.getItem("jdg-putters")||""}catch(e){}
+fillPutters();
+function saveRound(type){
+  const r=currentRound(type);
+  if(!r){toast(type==="distance"?"Enter at least one distance":type==="accuracy"?"Fill in at least one row first":"Enter your throws first");return}
+  if(r.needDisc){askDisc("round");return}
+  if(type==="accuracy"){persistAccThrows();saveSettings()}
+  if(type==="putting"&&U.puttDirty){U.puttDirty=false;saveSettings()}
+  U.rounds[type].push(r);resetCurrent(type,r);endRound(type);saveDrafts();U.confirm=null;render();toast("Round "+U.rounds[type].length+" saved");
+  document.getElementById("sess-"+type)?.scrollIntoView({block:"center",behavior:"smooth"});
+}
+async function saveSession(type){
+  const cur=currentRound(type);
+  if(cur&&cur.needDisc){askDisc("session");return}
+  if(cur&&type==="accuracy"){persistAccThrows();await saveSettings()}
+  if(type==="putting"&&U.puttDirty){U.puttDirty=false;await saveSettings()}
+  const rounds=U.rounds[type].slice();if(cur)rounds.push(cur);
+  if(!rounds.length){toast("Save a round first");return}
+  const date=(type==="distance"&&U.dDate)||today();
+  let ok=true;
+  if(type==="distance"){
+    const session=uid();
+    outer:for(let i=0;i<rounds.length;i++)for(const th of rounds[i].throws){if(!await addRec("distance",{disc:th.disc,distance:th.dist,throw:rounds[i].throw,date,session,round:i+1})){ok=false;break outer}}
+  }else if(type==="accuracy"){
+    const rows=rounds.flatMap((r,i)=>r.rows.map(x=>({...x,round:i+1})));
+    ok=await addRec("accuracy",{date,rounds,rows,heads:accHeads()});
+  }else{
+    const agg={};rounds.forEach(r=>r.results.forEach(x=>{const a=agg[x.dist]||(agg[x.dist]={dist:x.dist,made:0,att:0});a.made+=x.made;a.att+=x.att}));
+    ok=await addRec("putts",{date,rounds,results:Object.values(agg).sort((a,b)=>a.dist-b.dist)});
+  }
+  if(ok){U.rounds[type]=[];endRound(type);if(type==="distance")U.dNoDisc=false;resetCurrent(type,cur||rounds[rounds.length-1]);if(type==="accuracy")U.acc={};saveDrafts();render();toast("Session saved · "+rounds.length+" round"+(rounds.length===1?"":"s"))}
+}
+/* ---------- round setup ---------- */
+U.active={distance:false,accuracy:false,putting:false};
+U.setup={distance:null,accuracy:null,putting:null};
+const distRowsN=()=>Math.max(1,+(S.settings.distSetup?.throws)||5);
+function getSetup(type){
+  if(U.setup[type])return U.setup[type];
+  if(type==="distance")U.setup.distance={throws:distRowsN(),throw:S.settings.distSetup?.throw||U.dThrow||"Backhand"};
+  else if(type==="accuracy")U.setup.accuracy={rows:accRowsCfg().map(r=>({...r}))};
+  else{const p=U.putters||S.settings.putters||"",pp=S.settings.putPutts||[];U.setup.putting={putters:p,rows:putDists().map((d,i)=>({dist:d,putts:pp[i]||p}))}}
+  return U.setup[type];
+}
+function sameTotal(type,n){const s=getSetup(type);n=Math.max(0,parseInt(n,10)||0);
+  if(type==="putting"){const p=parseInt(s.putters,10)||0;return p?`${p} putters × ${n} round${n===1?"":"s"} = <strong>${p*n} total putts</strong>`:`Enter your number of putters above to see total putts.`}
+  const th=+(s.rows[0]?.throws)||5;return `${th} throws × ${n} round${n===1?"":"s"} = <strong>${th*n} total throws</strong>`}
+function sameBox(type){
+  if(U.same!==type)return `<div class="row"><button data-act="suAdd" data-type="${type}">+ Add distance</button><button data-act="suSame" data-type="${type}">Same distance</button></div>`;
+  const s=getSetup(type),last=s.rows[s.rows.length-1]||{};
+  return `<div class="ask askq samebox"><strong>Same distance</strong>
+    <div class="grid2"><label>Distance (ft)<input id="same-d" class="pin" type="number" inputmode="numeric" min="1" max="${type==="putting"?100:1000}" value="${esc(last.dist||(type==="putting"?20:200))}"></label>
+    <label>How many rounds<input id="same-n" class="pin" type="number" inputmode="numeric" min="1" max="30" value="5"></label></div>
+    <div class="sametotal" id="same-total">${sameTotal(type,5)}</div>
+    <div class="row" style="justify-content:flex-end"><button class="ghost" data-act="suSameCancel">Cancel</button><button class="primary" data-act="suSameApply" data-type="${type}">Set distances</button></div></div>`;
+}
+function setupView(type){
+  const s=getSetup(type),n=U.rounds[type].length+1;
+  let body="";
+  if(type==="distance"){
+    body=`<div class="grid2">
+      <label>Throws this round<input id="su-d-n" class="pin" data-su="distance" data-f="throws" type="number" inputmode="numeric" min="1" max="50" value="${esc(s.throws)}"></label>
+      <label>Type of throw<select id="su-d-t" data-su="distance" data-f="throw">${THROWS.map(t=>`<option ${s.throw===t?"selected":""}>${t}</option>`).join("")}</select></label></div>`;
+  }else if(type==="accuracy"){
+    body=`<div class="surows"><div class="surow suhead"><span>Distance (ft)</span><span>Throws</span><span></span></div>
+      ${s.rows.map((r,i)=>`<div class="surow">
+        <input id="su-a-d-${i}" tabindex="${10+i}" class="pin" data-su="accuracy" data-i="${i}" data-f="dist" data-col="su-ad" enterkeyhint="next" type="number" inputmode="numeric" min="1" max="1000" value="${esc(r.dist)}" aria-label="Distance ${i+1}">
+        <input id="su-a-t-${i}" tabindex="${500+i}" class="pin" data-su="accuracy" data-i="${i}" data-f="throws" data-col="su-at" enterkeyhint="next" type="number" inputmode="numeric" min="1" max="100" value="${esc(r.throws)}" aria-label="Throws at distance ${i+1}">
+        <button class="ghost" data-act="suRm" data-type="accuracy" data-i="${i}" aria-label="Remove distance">✕</button></div>`).join("")}</div>
+      ${sameBox("accuracy")}
+      <div class="row between"><button class="ghost" data-act="suReset" data-type="accuracy">Reset to 150–400</button></div>`;
+  }else{
+    body=`<label class="putters">Putters<input id="su-p-n" tabindex="9" class="pin" data-su="putting" data-f="putters" type="number" inputmode="numeric" min="1" max="100" placeholder="How many?" value="${esc(s.putters)}"></label>
+      <div class="surows"><div class="surow suhead"><span>Distance (ft)</span><span>Putts</span><span></span></div>
+      ${s.rows.map((r,i)=>`<div class="surow">
+        <input id="su-p-d-${i}" tabindex="${10+i}" class="pin" data-su="putting" data-i="${i}" data-f="dist" data-col="su-pd" enterkeyhint="next" type="number" inputmode="numeric" min="1" max="100" value="${esc(r.dist)}" aria-label="Putting distance ${i+1}">
+        <input id="su-p-t-${i}" tabindex="${500+i}" class="pin" data-su="putting" data-i="${i}" data-f="putts" data-col="su-pt" enterkeyhint="next" type="number" inputmode="numeric" min="1" max="100" value="${esc(r.putts)}" aria-label="Putts at distance ${i+1}">
+        <button class="ghost" data-act="suRm" data-type="putting" data-i="${i}" aria-label="Remove distance">✕</button></div>`).join("")}</div>
+      ${sameBox("putting")}
+      <div class="row between"><button class="ghost" data-act="suReset" data-type="putting">Reset to 15, 20, 25, 30</button></div>`;
+  }
+  return `<div class="panel setup">
+    <div class="row between"><h3>${type==="distance"?"Distance":type==="accuracy"?"Accuracy":"Putting"} · Round ${n}</h3><span class="small muted">Quick check</span></div>
+    <p class="small muted" style="margin:0">Confirm your setup. It's filled in from last time.</p>
+    ${body}
+    <button class="primary startbtn" data-act="suStart" data-type="${type}">Start round ${n}</button>
+  </div>`;
+}
+async function startRound(type){
+  const s=getSetup(type);
+  if(type==="distance"){
+    const n=Math.min(50,Math.max(1,parseInt(s.throws,10)||5));
+    U.dThrow=s.throw;
+    const lastDisc=U.dRows.filter(r=>r.disc).pop()?.disc||"";
+    U.dRows=blankRows(n,lastDisc);
+    S.settings={...S.settings,distSetup:{throws:n,throw:s.throw}};
+  }else if(type==="accuracy"){
+    const rows=s.rows.map(r=>({dist:+r.dist,throws:Math.max(1,+r.throws||5)})).filter(r=>r.dist>0).sort((a,b)=>a.dist-b.dist);
+    if(!rows.length){toast("Add at least one distance");return}
+    const t={};rows.forEach(r=>t[r.dist]=r.throws);
+    S.settings={...S.settings,accRows:rows,accDistances:rows.map(r=>r.dist),accThrows:{...(S.settings.accThrows||{}),...t}};
+    U.acc={};rows.forEach((r,i)=>U.acc[i]={throws:String(r.throws)});
+  }else{
+    const p=Math.max(0,parseInt(s.putters,10)||0);
+    const rows=s.rows.map(r=>({dist:+r.dist,putts:Math.max(0,parseInt(r.putts,10)||0)||p})).filter(r=>r.dist>0&&r.dist<=100).sort((a,b)=>a.dist-b.dist);
+    if(!rows.length){toast("Add at least one distance");return}
+    U.putters=p||"";try{localStorage.setItem("jdg-putters",String(p||""))}catch(e){}
+    S.settings={...S.settings,putDistances:rows.map(r=>r.dist),putPutts:rows.map(r=>r.putts||null),putters:p||null};
+    U.session={};U.puttTouched=false;fillPutters();
+  }
+  U.active[type]=true;U.setup[type]=null;U.confirm=null;
+  await saveSettings();
+  const first=type==="distance"?"dr-dist-0":type==="accuracy"?null:"pm-0";
+  if(first)setTimeout(()=>document.getElementById(first)?.focus(),50);
+}
+function endRound(type){U.active[type]=false;U.setup[type]=null}
+
+function persistAccThrows(){const cfg=accRowsCfg().map((c,i)=>({dist:c.dist,throws:Math.max(1,parseInt(U.acc[i]?.throws,10)||c.throws)}));S.settings={...S.settings,accRows:cfg}}
+function askDisc(mode){U.confirm="discQ:"+mode;render();document.getElementById("discq")?.scrollIntoView({block:"center",behavior:"smooth"})}
+function roundSummary(type,r){
+  if(type==="distance"){const ds=r.throws.map(t=>t.dist),mx=Math.max(...ds),b=r.throws.find(t=>t.dist===mx);
+    return `${r.throws.length} throw${r.throws.length===1?"":"s"} · ${esc(r.throw)} · avg ${Math.round(avg(ds))} ft · best ${mx} ft (${esc(discName(b.disc))})`}
+  if(type==="accuracy"){const H=accHeads(),tt=r.rows.reduce((s,x)=>s+(+x.throws||0),0),c1=r.rows.reduce((s,x)=>s+(+x.c1||0),0),c2=r.rows.reduce((s,x)=>s+(+x.c2||0),0);
+    return `${esc(H.c1)} ${c1}/${tt} · ${esc(H.c2)} ${c2}/${tt}`}
+  const m=r.results.reduce((s,x)=>s+x.made,0),a=r.results.reduce((s,x)=>s+x.att,0);return `${m}/${a} made · ${pct(m,a)}%`;
+}
+function roundDetail(type,r){
+  if(type==="distance")return r.throws.map((t,i)=>`<li><span>${i+1}. ${esc(discName(t.disc))}</span><span class="num">${t.dist} ft</span></li>`).join("");
+  if(type==="accuracy"){const H=accHeads();return r.rows.map(x=>`<li><span class="num">${x.dist} ft</span><span class="num small">${x.throws} ${esc(H.throws).toLowerCase()} · ${esc(H.c1)} ${x.c1??0} · ${esc(H.c2)} ${x.c2??0}${x.closest?` · ${esc(H.closest)}: ${esc(closestName(x.closest))}`:""}</span></li>`).join("")}
+  return r.results.map(x=>`<li><span class="num">${x.dist} ft</span><span class="num">${x.made}/${x.att} · ${pct(x.made,x.att)}%</span></li>`).join("");
+}
+function roundTitle(type){return `Round ${U.rounds[type].length+1}`}
+function roundButtons(type,clearAct){
+  return readOnly?"":`<div class="row" style="justify-content:flex-end"><button class="ghost" data-act="${clearAct}">Clear round</button><button class="primary" data-act="saveRound" data-type="${type}">Save round</button></div>`;
+}
+function sessionPanel(type){
+  if(readOnly)return "";
+  const R=U.rounds[type];
+  return `<div class="panel sessp" id="sess-${type}">
+    <div class="row between"><h3>This session</h3><span class="small muted">${R.length} round${R.length===1?"":"s"} saved</span></div>
+    ${R.length?`<div class="rounds">${R.map((r,i)=>`<details class="rd"><summary><span class="rn">R${i+1}</span><span class="rs num">${roundSummary(type,r)}</span></summary>
+      <ul class="rdl">${roundDetail(type,r)}</ul>
+      <div class="row" style="justify-content:flex-end"><button class="ghost danger" data-act="rmRound" data-type="${type}" data-i="${i}">Remove round</button></div></details>`).join("")}</div>`
+      :`<p class="small muted" style="margin:0">Fill in a round above and tap Save round. Your rounds collect here until you save the whole session.</p>`}
+    ${U.confirm==="discard:"+type?`<div class="ask"><span><strong>Discard this session?</strong> All ${R.length} saved round${R.length===1?"":"s"} will be removed.</span>
+      <div class="row"><button class="ghost" data-act="cancel">No</button><button class="dangerbtn" data-act="discardSess" data-type="${type}">Yes, discard</button></div></div>`:""}
+    <div class="row between">${R.length?`<button class="ghost danger" data-act="askDiscard" data-type="${type}">Discard session</button>`:"<span></span>"}
+      <button class="primary" data-act="saveWhole" data-type="${type}">Save session</button></div>
+  </div>`;
+}
+
+/* ---------- flight chart ---------- */
+// Stability adjustments: extra fade (shorter) for stable/overstable, extra turn (a bit longer) for understable
+const STAB_MOD={"Very understable":{turn:2,fade:-2,dist:0.06},"Understable":{turn:1,fade:-1,dist:0.03},"Straight":{turn:0,fade:0,dist:0},"Stable":{turn:-1,fade:1,dist:-0.03},"Overstable":{turn:-2,fade:2,dist:-0.06}};
+// [key, name, max distance ft, speed where that arm tops out, short label]
+// How strongly a disc reacts to arm power: understable discs turn over more, overstable discs resist
+const STAB_RES={"Very understable":1.5,"Understable":1.25,"Straight":1,"Stable":0.75,"Overstable":0.5};
+const LEVEL_TURN={beginner:0,intermediate:0.25,advanced:0.5,pro:0.75,elite:1};
+const LEVELS=[["beginner","Beginner",250,9,"Beginner"],["intermediate","Intermediate",325,11,"Interm."],["advanced","Advanced",400,12,"Advanced"],["pro","Pro",475,13,"Pro"],["elite","Elite",550,14,"Elite"]];
+const LEVEL_RANGE={beginner:"150–250",intermediate:"250–325",advanced:"325–400",pro:"400–475",elite:"475–550+"};
+const LINE_COLORS=["#e8631c","#1f4fbf","#2f8a4e","#b83a32","#7d4bc4","#0f8b8d","#c2185b","#8d6e00","#5d6d7e","#d4a017"];
+try{const v=JSON.parse(localStorage.getItem("jdg-chart")||"null");if(v){U.level=v.level;U.hand=v.hand;U.chartType=v.type}}catch(e){}
+U.level=U.level||"intermediate";U.hand=U.hand||"R";
+const saveChartPrefs=()=>{try{localStorage.setItem("jdg-chart",JSON.stringify({level:U.level,hand:U.hand,type:U.chartType}))}catch(e){}};
+const MY_FLIGHT=[["","Use flight numbers"],["hookhard","Hooks hard left",-30],["fade","Fades left",-15],["straight","Flies straight",0],["turn","Turns right",15],["turnhard","Turns hard right",30]];
+const statusLevel=k=>(LEVELS.find(l=>l[0]===k)||[k,k])[1];
+const myLevel=()=>S.settings.myLevel||"advanced";
+function rawFlight(d,level){
+  const L=LEVELS.find(l=>l[0]===level)||LEVELS[1],max=L[2],cap=L[3];
+  const sp=Math.max(1,Math.min(15,+d.speed||5)),gl=d.glide==null||d.glide===""?4:+d.glide;
+  const base=x=>0.4+0.6*(x-1)/12;           // share of max distance by disc speed
+  const eff=sp<=cap?sp:cap-(sp-cap)*0.5;     // discs too fast for the arm lose distance
+  const m=STAB_MOD[d.stability]||{fade:0,turn:0,dist:0};
+  const dist=Math.round(Math.min(600,max*base(eff)/base(cap)*(1+(gl-4)*0.02)*(1+m.dist)));
+  // Arm power vs disc speed: more power than the disc needs adds turn (flies more understable);
+  // less power takes turn away and adds fade (flies more overstable).
+  // Stability and glide decide how much a disc reacts.
+  const res=(STAB_RES[d.stability]??1)*(1+(gl-4)*0.15),power=cap-sp;
+  let turn=(+d.turn||0)-m.turn,fade=Math.max(0,(+d.fade||0)+m.fade);
+  // Players don't throw slower discs at full power, so extra turn depends on the arm level, not the speed gap
+  if(power>=0)turn-=Math.min(1.5,(LEVEL_TURN[level]??0.5)*res);
+  else{turn*=Math.max(0,1+power*0.25);fade+=Math.min(3,-power*0.8/Math.max(0.5,res))}
+  const turnFt=-turn*5;                      // each -1 turn = 5 ft right
+  const fadePer=(-turn>fade)?5:10;           // more turn than fade: each fade only brings it back 5 ft
+  return {dist,turnFt,endFt:turnFt-fade*fadePer};
+}
+function flightOf(d,level){
+  const r=rawFlight(d,level);
+  // If you've said how this disc flies for you, line the chart up with that at your level,
+  // then let the arm-power model move it from there for other levels.
+  const mf=MY_FLIGHT.find(x=>x[0]===d.myFlight);
+  if(mf&&mf[0]){const mine=rawFlight(d,myLevel()),shift=mf[2]-mine.endFt;r.turnFt+=shift*0.6;r.endFt+=shift;r.calibrated=true}
+  r.turnFt=Math.round(r.turnFt);r.endFt=Math.round(r.endFt);
+  return r;
+}
+function curve(pts){let p=`M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;
+    const c1=[p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6],c2=[p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6];
+    p+=` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`}return p}
+function chartView(){
+  const bag=S.discs.filter(d=>d.status==="bag");const usableAll=allDiscs().filter(d=>d.status!=="sold"&&d.status!=="stolen");
+  const pool=(bag.length?bag:usableAll).slice().sort((a,b)=>(b.speed||0)-(a.speed||0));
+  const ctype=U.chartType||"all";
+  const shown=pool.filter(d=>ctype==="all"||d.type===ctype||(ctype==="none"&&!d.type));
+  if(!Array.isArray(U.chartSel))U.chartSel=shown.map(d=>d.id);
+  const sel=shown.filter(d=>U.chartSel.includes(d.id));
+  const hasUntyped=pool.some(d=>!d.type);
+  const mirror=U.hand==="L"?-1:1;
+  const CW=36,COLS=10,ROWS=24,W=CW*COLS,H=CW*ROWS,padL=34,padB=26,padT=10,padR=10;
+  const X=ft=>padL+W/2+mirror*ft*(CW/10),Y=ft=>padT+H-ft*(CW/25);
+  let grid="";
+  for(let c=0;c<=COLS;c++){const x=padL+c*CW;grid+=`<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT+H}" class="${c===5?"gmid":"gl"}"/>`}
+  for(let r=0;r<=ROWS;r++){const y=padT+r*CW,ft=(ROWS-r)*25;grid+=`<line x1="${padL}" y1="${y}" x2="${padL+W}" y2="${y}" class="${ft%100===0?"gmaj":"gl"}"/>`;
+    if(ft%100===0)grid+=`<text x="${padL-5}" y="${y+4}" class="glbl" text-anchor="end">${ft}</text>`}
+  grid+=`<text x="${padL}" y="${padT+H+18}" class="glbl">← 50 ft</text><text x="${padL+W}" y="${padT+H+18}" class="glbl" text-anchor="end">50 ft →</text><text x="${padL+W/2}" y="${padT+H+18}" class="glbl" text-anchor="middle">Tee</text>`;
+  const lv=LEVELS.find(l=>l[0]===U.level)||LEVELS[1];
+  let paths="",ends="",legend="";
+  sel.forEach((d,i)=>{const fl=flightOf(d,U.level),dc=discColors(d).map(colorVal).filter(Boolean),col=dc[0]||LINE_COLORS[i%LINE_COLORS.length],col2=dc[1],D=fl.dist;
+    const raw=[[0,0],[fl.turnFt*0.45,D*0.3],[fl.turnFt,D*0.6],[fl.turnFt-(fl.turnFt-fl.endFt)*0.35,D*0.82],[fl.endFt,D]];
+    const pts=raw.map(([x,y])=>[X(Math.max(-50,Math.min(50,x))),Y(y)]);
+    const dp=curve(pts);
+    paths+=`<path d="${dp}" fill="none" class="halo" stroke-width="6" stroke-linecap="round"/><path d="${dp}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>${col2?`<path d="${dp}" fill="none" stroke="${col2}" stroke-width="3.5" stroke-dasharray="7 9" stroke-linecap="butt"/>`:""}`;
+    const e=pts[pts.length-1];ends+=`<circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="5.5" fill="${col}" class="endpt" stroke-width="1.5"/>`;
+    const side=fl.endFt===0?"center":(fl.endFt*mirror>0?"right":"left");
+    legend+=`<li><span class="lsw" style="background:${col2?`repeating-linear-gradient(90deg,${col} 0 5px,${col2} 5px 9px)`:col}"></span><span class="lname">${esc(d.name)}<span class="small muted"> ${[d.speed,d.glide,d.turn,d.fade].map(v=>v??"–").join(" | ")}${d.stability?" · "+esc(d.stability):""}${fl.calibrated?" · set to your flight":""}</span></span><span class="num"><strong>${D}</strong> ft · ${side==="center"?"ends center":Math.abs(Math.round(fl.endFt))+" ft "+side}</span></li>`});
+  return `<div class="row between"><button class="ghost" data-act="closeChart">← Back</button><h2>Flight chart</h2></div>
+  <div class="seg seg4" role="group" aria-label="Athlete level">${LEVELS.map(([k,l,,,sh])=>`<button data-level="${k}" aria-pressed="${U.level===k}" aria-label="${l}">${sh}</button>`).join("")}</div>
+  <div class="row between small muted"><span>${lv[1]}: throws about ${LEVEL_RANGE[U.level]} ft</span>
+    <label class="mylvl">Your level<select id="mylevel" data-mylevel="1">${LEVELS.map(([k,l])=>`<option value="${k}" ${myLevel()===k?"selected":""}>${l}</option>`).join("")}</select></label>
+    <span class="row" style="gap:4px"><button class="chip" data-hand="R" aria-pressed="${U.hand==="R"}">Right hand</button><button class="chip" data-hand="L" aria-pressed="${U.hand==="L"}">Left hand</button></span></div>
+  ${pool.length?`<div class="row ctypebar"><label for="ctype" class="sortlbl">Discs</label>
+    <select id="ctype" data-ctype="1"><option value="all" ${ctype==="all"?"selected":""}>All types (${pool.length})</option>${DISC_TYPES.map(t=>{const n=pool.filter(d=>d.type===t).length;return n?`<option value="${t}" ${ctype===t?"selected":""}>${t}s (${n})</option>`:""}).join("")}${hasUntyped?`<option value="none" ${ctype==="none"?"selected":""}>No type set (${pool.filter(d=>!d.type).length})</option>`:""}</select>
+    <button class="ghost small" data-act="chartAll">${sel.length===shown.length?"Clear":"Select all"}</button></div>
+  <div class="chips chips-wrap" role="group" aria-label="Discs on chart">${shown.map(d=>`<button class="chip" data-chartdisc="${esc(d.id)}" aria-pressed="${U.chartSel.includes(d.id)}">${esc(d.name)}</button>`).join("")}</div>`:""}
+  <div class="panel chartp">
+    ${sel.length?"":`<div class="empty"><strong>No discs on the chart</strong>${S.discs.length?"Tap discs above to draw their flights.":"Add discs with flight numbers on the Bag tab to see them here."}</div>`}
+    <div class="chartwrap"><svg viewBox="0 0 ${padL+W+padR} ${padT+H+padB}" role="img" aria-label="Flight paths. Each column is 10 feet, each row 25 feet.">${grid}${paths}${ends}<circle cx="${X(0)}" cy="${Y(0)}" r="5" class="tee"/></svg></div>
+    <p class="small muted" style="margin:0">Each column is 10 ft and each row is 25 ft. Backhand estimate from flight numbers: each −1 turn ≈ 5 ft ${U.hand==="L"?"left":"right"}, Lines use each disc's color (a second color shows as dashes); discs with no color get a standard color. Each point of fade ≈ 10 ft back ${U.hand==="L"?"right":"left"} at the finish (only 5 ft when the disc has more turn than fade). Stability adds to that: understable −1 turn and −1 fade, very understable −2 turn and −2 fade (both a little longer); stable +1 turn and +1 fade, overstable +2 turn and +2 fade (both a little shorter). Arm power changes it too: stronger levels add a little turn (up to about −1 for elite; understable and high-glide discs react most, overstable least), and a disc too fast for the arm turns less and fades harder. Set “How it flies for you” on a disc and pick your level above to line the chart up with your real throws.</p>
+    ${legend?`<ul class="legend">${legend}</ul>`:""}
+  </div>`;
+}
+
+/* ---------- results ---------- */
+function hbar(label,valueTxt,frac,sub){return `<div class="hb"><div class="row between"><span class="dname" style="font-size:15px">${label}</span><span class="num"><strong>${valueTxt}</strong></span></div>
+  <div class="bar"><i style="width:${Math.max(0,Math.min(100,frac*100))}%"></i></div>${sub?`<div class="small muted">${sub}</div>`:""}</div>`}
+const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+const r1=x=>Math.round(x*10)/10;
+const noData=(t,m)=>`<div class="empty"><strong>${t}</strong>${m}</div>`;
+function resultsView(){
+  const sec=U.rsec||"distance";
+  const seg=[["distance","Distance"],["accuracy","Accuracy"],["putting","Putting"]];
+  return `<h2>Results</h2>
+  <div class="seg" role="group" aria-label="Results type">${seg.map(([k,l])=>`<button data-rsec="${k}" aria-pressed="${sec===k}">${l}</button>`).join("")}</div>
+  ${sec==="distance"?distResults():sec==="accuracy"?accResults():puttResults()}
+  ${backupPanel()}`;
+}
+function distResults(){
+  const L=S.distance.filter(l=>l.distance>0);
+  if(!L.length)return noData("No distance data yet","Save a distance session to see averages, longest throws and your furthest discs.");
+  const groups={};L.forEach(l=>{const k=l.session||("d"+l.date);(groups[k]||(groups[k]={date:l.date,list:[]})).list.push(l)});
+  const sess=Object.values(groups).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const maxAll=Math.max(...L.map(l=>l.distance));
+  const top=L.slice().sort((a,b)=>b.distance-a.distance).slice(0,10);
+  const byDisc={};L.filter(l=>l.disc).forEach(l=>(byDisc[l.disc]||(byDisc[l.disc]=[])).push(l.distance));
+  const discs=Object.entries(byDisc).map(([id,a])=>({id,max:Math.max(...a),avg:avg(a),n:a.length})).sort((a,b)=>b.max-a.max);
+  return `<div class="stats">
+    <div class="stat"><div class="k">Longest throw</div><div class="big">${maxAll}<small>ft</small></div></div>
+    <div class="stat"><div class="k">Average throw</div><div class="big">${Math.round(avg(L.map(l=>l.distance)))}<small>ft</small></div></div>
+    <div class="stat"><div class="k">Throws logged</div><div class="big">${L.length}</div></div></div>
+  <div class="panel"><h3>Average per session</h3>${sess.map(s=>{const a=avg(s.list.map(l=>l.distance));
+    return hbar(fmtDate(s.date),Math.round(a)+" ft",a/maxAll,`${s.list.length} throw${s.list.length===1?"":"s"} · longest ${Math.max(...s.list.map(l=>l.distance))} ft`)}).join("")}</div>
+  <div class="panel"><h3>Longest throws</h3><ol class="rank">${top.map(l=>`<li><span class="dname" style="font-size:15px">${esc(discName(l.disc))}<span class="small muted"> · ${esc(l.throw)} · ${fmtDate(l.date)}</span></span><span class="big">${l.distance}<small>ft</small></span></li>`).join("")}</ol></div>
+  <div class="panel"><h3>Furthest flying discs</h3>${discs.map(d=>hbar(esc(discName(d.id)),d.max+" ft",d.max/maxAll,`avg ${Math.round(d.avg)} ft over ${d.n} throw${d.n===1?"":"s"}`)).join("")}</div>`;
+}
+function accResults(){
+  const L=S.accuracy.filter(l=>Array.isArray(l.rows));
+  if(!L.length)return noData("No accuracy data yet","Save an accuracy session to see your closest discs and Circle 1 and Circle 2 averages.");
+  const H=accHeads();
+  const cnt={};const perDist={};
+  L.forEach(l=>l.rows.forEach(r=>{
+    if(r.closest&&typeof r.closest==="string")cnt[r.closest]=(cnt[r.closest]||0)+1;
+    const p=perDist[r.dist]||(perDist[r.dist]={c1:[],c2:[],close:{}});
+    if(r.c1!=null)p.c1.push(+r.c1);if(r.c2!=null)p.c2.push(+r.c2);
+    if(r.closest&&typeof r.closest==="string")p.close[r.closest]=(p.close[r.closest]||0)+1;}));
+  const sessC1=L.map(l=>l.rows.reduce((s,r)=>s+(+r.c1||0),0)),sessC2=L.map(l=>l.rows.reduce((s,r)=>s+(+r.c2||0),0));
+  const ranked=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);const maxC=ranked[0]?.[1]||1;
+  const dists=Object.keys(perDist).map(Number).sort((a,b)=>a-b);
+  const maxAvg=Math.max(1,...dists.map(d=>Math.max(avg(perDist[d].c1),avg(perDist[d].c2))));
+  const topOf=o=>{const e=Object.entries(o).sort((a,b)=>b[1]-a[1])[0];return e?esc(discName(e[0])):"—"};
+  return `<div class="stats">
+    <div class="stat"><div class="k">Avg ${esc(H.c1)} / session</div><div class="big">${r1(avg(sessC1))}</div></div>
+    <div class="stat"><div class="k">Avg ${esc(H.c2)} / session</div><div class="big">${r1(avg(sessC2))}</div></div>
+    <div class="stat"><div class="k">Sessions</div><div class="big">${L.length}</div></div></div>
+  <div class="panel"><h3>${esc(H.closest)} disc</h3>${ranked.length?ranked.map(([id,n])=>hbar(esc(discName(id)),n+"×",n/maxC,"times it landed closest")).join(""):`<p class="small muted" style="margin:0">Pick a disc in the ${esc(H.closest)} column to rank them here.</p>`}</div>
+  <div class="panel"><h3>Averages by distance</h3>
+    <div class="tablewrap"><table class="acc rtab"><thead><tr><th>Distance</th><th>Avg ${esc(H.c1)}</th><th>Avg ${esc(H.c2)}</th><th>${esc(H.closest)} most</th></tr></thead>
+    <tbody>${dists.map(d=>{const p=perDist[d];return `<tr><th class="ft num" scope="row">${d}<small>ft</small></th>
+      <td class="num">${p.c1.length?r1(avg(p.c1)):"—"}<div class="bar"><i style="width:${avg(p.c1)/maxAvg*100}%"></i></div></td>
+      <td class="num">${p.c2.length?r1(avg(p.c2)):"—"}<div class="bar"><i class="alt" style="width:${avg(p.c2)/maxAvg*100}%"></i></div></td>
+      <td class="small">${topOf(p.close)}</td></tr>`}).join("")}</tbody></table></div></div>`;
+}
+function puttResults(){
+  const L=S.putts.filter(p=>Array.isArray(p.results)&&p.results.length).sort((a,b)=>(b.date||"").localeCompare(a.date||"")||b.created-a.created);
+  if(!L.length)return noData("No putting data yet","Save a putting session to see your percentage per session and per distance.");
+  const all=puttAll();const tm=L.reduce((s,p)=>s+p.results.reduce((x,r)=>x+r.made,0),0),ta=L.reduce((s,p)=>s+p.results.reduce((x,r)=>x+r.att,0),0);
+  const dists=Object.keys(all).map(Number).sort((a,b)=>a-b);
+  return `<div class="stats">
+    <div class="stat"><div class="k">Overall</div><div class="big">${pct(tm,ta)}<small>%</small></div><div class="small muted num">${tm} of ${ta}</div></div>
+    <div class="stat"><div class="k">Sessions</div><div class="big">${L.length}</div></div></div>
+  <div class="panel"><h3>Percentage per distance</h3>${dists.map(d=>hbar(d+" ft",pct(all[d].m,all[d].a)+"%",all[d].a?all[d].m/all[d].a:0,`${all[d].m} of ${all[d].a} made`)).join("")}</div>
+  <div class="panel"><h3>Percentage per session</h3>${L.map(p=>{const m=p.results.reduce((x,r)=>x+r.made,0),a=p.results.reduce((x,r)=>x+r.att,0);
+    return hbar(fmtDate(p.date),pct(m,a)+"%",a?m/a:0,p.results.map(r=>`${r.dist}′ ${pct(r.made,r.att)}%`).join(" · "))}).join("")}</div>`;
+}
+
+/* ---------- events ---------- */
+document.querySelector("nav.tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(!b)return;U.view=null;U.tab=b.dataset.tab;U.confirm=null;rememberUI();render();window.scrollTo(0,0);focusQuick()});
+app.addEventListener("click",async e=>{
+  if(suppressClick){e.preventDefault();e.stopPropagation();return}
+  const sm=e.target.closest(".fnotes > summary");if(sm){const dt=sm.parentElement;setTimeout(()=>{if(dt.open){const ta=dt.querySelector("textarea");if(ta){ta.focus();const n=ta.value.length;try{ta.setSelectionRange(n,n)}catch(err){}}}},0);return}
+  const row=e.target.closest(".dhead[data-open]");
+  if(row&&!e.target.closest("button,a,input,select")){openDisc(row.dataset.open);return}
+  const t=e.target.closest("button");if(!t)return;
+  if(t.dataset.filter){U.filter=t.dataset.filter;rememberUI();return render()}
+  if(t.dataset.level){U.level=t.dataset.level;saveChartPrefs();return render()}
+  if(t.dataset.hand){U.hand=t.dataset.hand;saveChartPrefs();return render()}
+  if(t.dataset.chartdisc){const id=t.dataset.chartdisc;U.chartSel=U.chartSel.includes(id)?U.chartSel.filter(x=>x!==id):U.chartSel.concat([id]);saveChartPrefs();return render()}
+  if(t.dataset.act==="chartAll"){const bag=S.discs.filter(d=>d.status==="bag"),pool=bag.length?bag:allDiscs().filter(d=>d.status!=="sold"&&d.status!=="stolen"),ct=U.chartType||"all";
+    const ids=pool.filter(d=>ct==="all"||d.type===ct||(ct==="none"&&!d.type)).map(d=>d.id);U.chartSel=ids.every(id=>U.chartSel.includes(id))?[]:ids;render();return}
+  if(t.dataset.act==="closeChart"){U.view=null;render();return}
+  if(t.dataset.rsec){U.rsec=t.dataset.rsec;return render()}
+  if(t.dataset.practice){U.practice=t.dataset.practice;U.confirm=null;rememberUI();render();focusQuick();return}
+  if(t.dataset.qa){const d=+t.dataset.qa,s=U.session[d]||(U.session[d]={m:0,a:0});s.a+=+t.dataset.n;
+    const i=document.getElementById("pa-"+d);if(i)i.value=s.a;return refreshPutt(d)}
+  const a=t.dataset.act;if(!a)return;
+  if(a==="sortDir"){U.sortDir=U.sortDir==="desc"?"asc":"desc";rememberUI();render();return}
+  if(a==="newColor"){U.colorAdd={h:175,s:0.75,v:0.63,hex:hsvHex(175,0.75,0.63),name:""};U.colorManage=false;render();setTimeout(()=>document.querySelector(".cwheelbox")?.scrollIntoView({block:"center",behavior:"smooth"}),30);return}
+  if(a==="cShade"){const c=U.colorAdd;if(!c)return;c.v=+t.dataset.v;c.hex=hsvHex(c.h,c.s,c.v);updWheel();return}
+  if(a==="cancelColor"){U.colorAdd=null;render();return}
+  if(a==="manageColors"){U.colorManage=!U.colorManage;render();return}
+  if(a==="rmColor"){const list=customColors().slice();list.splice(+t.dataset.i,1);S.settings={...S.settings,customColors:list};await saveSettings();toast("Color removed");return}
+  if(a==="saveColor"){const hex=U.colorAdd.hex,name=document.getElementById("c-name").value.trim().replace(/\s+/g," ");
+    if(!name){toast("Type a name for the color");document.getElementById("c-name").focus();return}
+    if(allColors().some(c=>c[0].toLowerCase()===name.toLowerCase())){toast(name+" already exists");return}
+    const nm=name.charAt(0).toUpperCase()+name.slice(1);
+    const f=document.getElementById("discForm");if(f){const fd=new FormData(f);U.discDraft={...Object.fromEntries(fd),colors:fd.getAll("colors").concat([nm])}}
+    U.colorAdd=null;S.settings={...S.settings,customColors:customColors().concat([{name:nm,hex}])};await saveSettings();toast(nm+" added");return}
+  if(a==="aceStep"){const i=document.getElementById("f-aces");if(i){i.value=Math.max(0,(parseInt(i.value,10)||0)+ +t.dataset.n)||"";i.dispatchEvent(new Event("input",{bubbles:true}))}return}
+  if(a==="addAce"){const dd=S.discs.find(x=>x.id===t.dataset.id);if(!dd)return;const n=(+dd.aces||0)+1;dd.aces=n;render();if(await updRec("discs",dd.id,{aces:n}))toast(n===1?"First ace with "+dd.name+"!":"Ace #"+n+" with "+dd.name);return}
+  if(a==="addSection"){const list=secObjs();let n=1,name="New section";while(list.some(x=>x.label===name))name="New section "+(++n);
+    const key="s"+uid();list.push({key,label:name});S.settings={...S.settings,sections:list};U.filter=key;U.confirm=null;rememberUI();await saveSettings();
+    setTimeout(()=>{const i=document.getElementById("sec-name");if(i){i.focus();i.select()}},40);return}
+  if(a==="askDelSection"){U.confirm="delsec";render();return}
+  if(a==="delSection"){const gone=U.filter,inside=S.discs.filter(d=>d.status===gone),dest=document.getElementById("sec-move")?.value;
+    for(const dd of inside){if(dest==="__delete")await delRec("discs",dd.id);else if(dest){dd.status=dest;await updRec("discs",dd.id,{status:dest})}}
+    const list=secObjs().filter(o=>o.key!==U.filter);S.settings={...S.settings,sections:list};U.filter=dest&&dest!=="__delete"?dest:"all";U.confirm=null;rememberUI();await saveSettings();toast(inside.length?(dest==="__delete"?"Section and "+inside.length+" disc"+(inside.length===1?"":"s")+" deleted":"Section deleted, discs moved to "+statusLabel(dest)):"Section deleted");return}
+  if(a&&a.startsWith("bk")){await backupAction(a);return}
+  if(a==="openChart"){U.view="chart";U.confirm=null;render();window.scrollTo(0,0);return}
+  if(a==="swapRim"){const sel=document.getElementById("f-rim");if(sel){sel.selectedIndex=sel.selectedIndex?0:1;sel.dispatchEvent(new Event("input",{bubbles:true}))}return}
+  if(a==="saveDisc"){saveDisc();return}
+  if(a==="copyDisc"){const src=S.discs.find(x=>x.id===t.dataset.id);if(!src)return;
+    const {id,created,...rest}=src;U.discDraft={...rest,id:""};U.copying=src.name;U.editDisc=null;U.showDiscForm=true;U.confirm=null;render();
+    window.scrollTo({top:0,behavior:"smooth"});return}
+  if(a==="negTurn"){const i=document.getElementById("f-turn");if(i){const x=i.value.trim();i.value=x.startsWith("-")?x.slice(1):"-"+(x||"");i.dispatchEvent(new Event("input",{bubbles:true}));i.focus()}return}
+  if(a==="newDisc"){U.discDraft=null;U.copying=null;U.showDiscForm=true;U.editDisc=null;render();document.getElementById("f-name")?.focus()}
+  else if(a==="editDisc"){U.discDraft=null;U.copying=null;U.colorAdd=null;U.expand=t.dataset.id;U.editDisc=t.dataset.id;U.showDiscForm=false;U.confirm=null;render();setTimeout(()=>document.getElementById("f-name")?.closest(".disc")?.scrollIntoView({block:"start",behavior:"smooth"}),30)}
+  else if(a==="closeDisc"){U.discDraft=null;U.copying=null;U.editDisc=null;U.showDiscForm=false;render()}
+  else if(a==="askDel"){U.editDisc=null;U.confirm="disc:"+t.dataset.id;render()}
+  else if(a==="delDisc"){U.confirm=null;U.expand=null;if(await delRec("discs",t.dataset.id))toast("Disc deleted")}
+  else if(a==="askLog"){U.confirm=t.dataset.key;render()}
+  else if(a==="delLog"){U.confirm=null;if(await delRec(t.dataset.coll,t.dataset.id))toast("Entry deleted")}
+  else if(a==="cancel"){U.confirm=null;render()}
+  else if(a==="undoPutt"){const l=U.lastPutt;if(l){const s=U.session[l.d];s.a--;if(l.made)s.m--;U.lastPutt=null;render()}}
+  else if(a==="clearSess"){resetCurrent("putting");render()}
+  else if(a==="saveRound"){saveRound(t.dataset.type)}
+  else if(a==="logThrow"){await logThrowNow()}
+  else if(a==="suStart"){await startRound(t.dataset.type)}
+  else if(a==="suOpen"){const ty=t.dataset.type;U.active[ty]=false;U.setup[ty]=null;render()}
+  else if(a==="suAdd"){const ty=t.dataset.type,s=getSetup(ty);
+    if(ty==="accuracy"){const last=s.rows[s.rows.length-1];s.rows.push({dist:(+last?.dist||100)+50,throws:+last?.throws||5})}
+    else{const last=s.rows[s.rows.length-1]||{};s.rows.push({dist:Math.min(100,(+last.dist||10)+5),putts:s.putters||last.putts||""})}render()}
+  else if(a==="suSame"){U.same=t.dataset.type;render();setTimeout(()=>document.getElementById("same-d")?.focus(),30)}
+  else if(a==="suSameCancel"){U.same=null;render()}
+  else if(a==="suSameApply"){const ty=t.dataset.type,s=getSetup(ty),dv=parseInt(document.getElementById("same-d").value,10),nv=parseInt(document.getElementById("same-n").value,10);
+    if(!(dv>0)){toast("Enter a distance");return}if(!(nv>0)){toast("Enter how many");return}const n=Math.min(30,nv);
+    if(ty==="accuracy"){const th=+(s.rows[0]?.throws)||5;s.rows=Array.from({length:n},()=>({dist:dv,throws:th}))}
+    else s.rows=Array.from({length:n},()=>({dist:Math.min(100,dv),putts:s.putters||""}));
+    U.same=null;render();toast(n+" × "+dv+" ft set")}
+  else if(a==="suRm"){const ty=t.dataset.type,s=getSetup(ty);s.rows.splice(+t.dataset.i,1);render()}
+  else if(a==="suReset"){const ty=t.dataset.type,s=getSetup(ty);
+    if(ty==="accuracy")s.rows=DEFAULT_ACC.map(d=>({dist:d,throws:5}));else s.rows=DEFAULT_PUTTS.map(d=>({dist:d,putts:s.putters||""}));U.same=null;render()}
+  else if(a==="saveWhole"){await saveSession(t.dataset.type)}
+  else if(a==="rmRound"){U.rounds[t.dataset.type].splice(+t.dataset.i,1);saveDrafts();render();toast("Round removed")}
+  else if(a==="askDiscard"){U.confirm="discard:"+t.dataset.type;render()}
+  else if(a==="discYes"){U.confirm=null;render();const i=U.dRows.findIndex(r=>+r.dist>0&&!r.disc);document.getElementById("dr-disc-"+i)?.focus()}
+  else if(a==="discNo"){const mode=U.confirm.split(":")[1];U.confirm=null;U.dNoDisc=true;if(mode==="session")await saveSession("distance");else saveRound("distance")}
+  else if(a==="discardSess"){const ty=t.dataset.type;U.confirm=null;if(ty==="distance")U.dNoDisc=false;endRound(ty);U.rounds[ty]=[];resetCurrent(ty);saveDrafts();render();toast("Session discarded")}
+  else if(a==="addDRow"){const last=U.dRows[U.dRows.length-1];const n=+t.dataset.n;U.dRows.push(...blankRows(n,last?last.disc:""));render();
+    document.getElementById("dr-dist-"+(U.dRows.length-n))?.focus()}
+  else if(a==="rmDRow"){U.dRows.splice(+t.dataset.i,1);if(!U.dRows.length)U.dRows=blankRows(1);render()}
+  else if(a==="askClearD"){if(!U.dRows.some(r=>r.dist||r.disc)){toast("Nothing to clear");return}U.confirm="clearD";render();document.querySelector(".ask")?.scrollIntoView({block:"center",behavior:"smooth"})}
+  else if(a==="clearDRows"){U.confirm=null;U.dRows=blankRows(5);render();toast("Round cleared")}
+  else if(a==="editAcc"){U.editingAcc=true;U.accDraft=(S.settings.accDistances||DEFAULT_ACC).slice();render()}
+  else if(a==="cancelAcc"){U.editingAcc=false;U.accDraft=null;render()}
+  else if(a==="addAcc"){syncAcc();const last=U.accDraft[U.accDraft.length-1]||100;U.accDraft.push(last+50);render()}
+  else if(a==="rmAcc"){syncAcc();U.accDraft.splice(+t.dataset.i,1);render()}
+  else if(a==="resetAcc"){U.accDraft=DEFAULT_ACC.slice();render()}
+  else if(a==="saveAcc"){syncAcc();const v=[...new Set(U.accDraft.map(Number).filter(n=>n>0&&n<=1000))].sort((x,y)=>x-y);
+    if(!v.length){toast("Keep at least one distance");return}
+    S.settings={...S.settings,accDistances:v};U.editingAcc=false;U.accDraft=null;await saveSettings();toast("Distances saved")}
+  else if(a==="clearAcc"){const keep={};Object.entries(U.acc).forEach(([d,v])=>{if(v.throws)keep[d]={throws:v.throws}});U.acc=keep;render()}
+  else if(a==="editDist"){U.editingPutts=true;U.distDraft=(S.settings.putDistances||DEFAULT_PUTTS).slice();render()}
+  else if(a==="cancelDist"){U.editingPutts=false;U.distDraft=null;render()}
+  else if(a==="addDist"){syncDraft();const last=U.distDraft[U.distDraft.length-1]||10;U.distDraft.push(Math.min(100,last+5));render()}
+  else if(a==="rmDist"){syncDraft();U.distDraft.splice(+t.dataset.i,1);render()}
+  else if(a==="resetDist"){U.distDraft=DEFAULT_PUTTS.slice();render()}
+  else if(a==="saveDist"){syncDraft();const v=[...new Set(U.distDraft.map(Number).filter(n=>n>0&&n<=100))].sort((x,y)=>x-y);
+    if(!v.length){toast("Keep at least one distance");return}
+    S.settings={...S.settings,putDistances:v};U.editingPutts=false;U.distDraft=null;await saveSettings();toast("Distances saved")}
+});
+app.addEventListener("input",e=>{const t=e.target;
+  if(t.id==="c-name"&&U.colorAdd){U.colorAdd.name=t.value;return}
+  if(t.closest&&t.closest("#discForm")){const fd=new FormData(t.closest("#discForm"));U.discDraft={...Object.fromEntries(fd),colors:fd.getAll("colors")};delete U.discDraft.color;
+    if(t.name==="colors"||t.name==="colorStyle"||t.name==="rim"){const y=window.scrollY;render();window.scrollTo(0,y)}return}
+  if(t.dataset.su){const s=getSetup(t.dataset.su),f=t.dataset.f;
+    if(t.dataset.i!==undefined)s.rows[+t.dataset.i][f]=t.value;
+    else{s[f]=t.value;if(t.dataset.su==="putting"&&f==="putters")s.rows.forEach((r,k)=>{r.putts=t.value;const el=document.getElementById("su-p-t-"+k);if(el)el.value=t.value})}return}
+  if(t.id==="same-n"&&U.same){const el=document.getElementById("same-total");if(el)el.innerHTML=sameTotal(U.same,t.value);return}
+  if(t.dataset.pdist){const i=+t.dataset.pdist,v=parseInt(t.value,10);if(v>0){const arr=putDists().slice();arr[i]=v;S.settings={...S.settings,putDistances:arr};U.puttDirty=true;refreshPutt(i)}return}
+  if(t.dataset.drow){U.dRows[+t.dataset.drow][t.dataset.k]=t.value;return}
+  if(t.dataset.dsess){if(t.dataset.dsess==="throw")U.dThrow=t.value;else U.dDate=t.value;return}
+  if(t.dataset.putters){const n=Math.max(0,parseInt(t.value,10)||0);U.putters=n||"";U.puttTouched=true;
+    try{localStorage.setItem("jdg-putters",String(n||""))}catch(err){}
+    putDists().forEach((d,k)=>{const s=U.session[k]||(U.session[k]={m:0,a:0});s.a=n;
+      const i=document.getElementById("pa-"+k);if(i)i.value=n||"";refreshPutt(k)});return}
+  if(t.dataset.pm||t.dataset.pa){U.puttTouched=true;const d=+(t.dataset.pm||t.dataset.pa),s=U.session[d]||(U.session[d]={m:0,a:0});
+    const n=Math.max(0,parseInt(t.value,10)||0);if(t.dataset.pm)s.m=n;else s.a=n;refreshPutt(d);return}
+  if(t.dataset.acell){const d=t.dataset.acell;(U.acc[d]||(U.acc[d]={}))[t.dataset.k]=t.value;}
+});
+app.addEventListener("change",async e=>{const t=e.target;
+  if(t.id==="q-disc"){U.dDisc=t.value;U.qPending=false;const v=parseInt(document.getElementById("q-dist")?.value,10);if(v>0)logQuick();return}
+  if(t.dataset.mylevel){S.settings={...S.settings,myLevel:t.value};await saveSettings();toast("Your level: "+statusLevel(t.value));return}
+  if(t.dataset.secall){const k=t.dataset.secall,on=t.checked;S.settings={...S.settings,sections:secObjs().map(o=>o.key===k?{...o,all:on}:o)};await saveSettings();toast(on?statusLabel(k)+" shows in All":statusLabel(k)+" hidden from All");return}
+  if(t.dataset.secname){const name=t.value.trim().replace(/\s+/g," ");const k=t.dataset.secname;if(!name){t.value=statusLabel(k);return}
+    if(name===statusLabel(k))return;const list=secObjs().map(o=>({...o,label:o.key===k?name:o.label}));S.settings={...S.settings,sections:list};await saveSettings();toast("Renamed to "+name);return}
+  if(t.dataset.ctype){U.chartType=t.value;U.chartSel=null;saveChartPrefs();render();return}
+  if(t.dataset.sort){U.sort=t.value;U.sortDir=(t.value==="name"||t.value==="color")?"asc":"desc";rememberUI();render();return}
+  if(t.dataset.ahead){const v=t.value.trim()||DEFAULT_ACC_HEADS[t.dataset.ahead];S.settings={...S.settings,accHeads:{...accHeads(),[t.dataset.ahead]:v}};await saveSettings();toast("Column renamed")}
+});
+function syncAcc(){document.querySelectorAll("[data-ad]").forEach(i=>{U.accDraft[+i.dataset.ad]=+i.value})}
+function syncDraft(){document.querySelectorAll("[data-pd]").forEach(i=>{U.distDraft[+i.dataset.pd]=+i.value})}
+app.addEventListener("submit",e=>{e.preventDefault();if(e.target.id==="discForm")saveDisc()});
+async function saveDisc(){
+  const f=document.getElementById("discForm");if(!f||U.savingDisc)return;const v=Object.fromEntries(new FormData(f));
+  {
+    const n=(k,label)=>{const raw=String(v[k]??"").trim().replace(",",".").replace(/^\+/,"");if(raw==="")return null;const x=parseFloat(raw);if(!isFinite(x))throw label;return x};
+    let rec;
+    try{rec={name:v.name.trim(),plastic:v.plastic.trim(),speed:n("speed","Speed"),glide:n("glide","Glide"),turn:n("turn","Turn"),fade:n("fade","Fade"),weight:n("weight","Weight"),aces:Math.max(0,Math.round(n("aces","Aces")||0)),colors:new FormData(f).getAll("colors"),color:"",colorStyle:v.colorStyle||"split",rim:v.rim||"",myFlight:v.myFlight||"",notes:(v.notes||"").trim(),type:v.type||"",stability:v.stability,status:v.status||"bag"}}
+    catch(label){toast(label+" needs to be a number");document.getElementById("f-"+String(label).toLowerCase())?.focus();return}
+    if(!rec.name){toast("Give the disc a name");document.getElementById("f-name")?.focus();return}
+    U.savingDisc=true;let ok;try{ok=v.id?await updRec("discs",v.id,rec):await addRec("discs",rec)}finally{U.savingDisc=false}
+    if(ok){U.discDraft=null;U.copying=null;U.editDisc=null;U.showDiscForm=false;U.filter=rec.status;U.flash=v.id||(typeof ok==="string"?ok:null);rememberUI();render();
+      toast((v.id?"Saved to ":"Added to ")+statusLabel(rec.status));
+      setTimeout(()=>{document.querySelector(".disc.flash")?.scrollIntoView({block:"center",behavior:"smooth"})},60);setTimeout(()=>{U.flash=null},2500)}
+  }
+}
+
+/* ---------- keep the field you're typing in visible above the keyboard ---------- */
+const isField=el=>el&&el.matches&&el.matches("input:not([type=hidden]):not([type=color]),select,textarea");
+let typingEl=null;
+const isTyping=el=>el&&el.id!=="q-dist"&&((el.tagName==="INPUT"&&!["checkbox","radio","date","hidden","color"].includes(el.type))||el.tagName==="TEXTAREA");
+const typebar=document.getElementById("typebar");
+function fieldLabel(el){
+  const a=el.getAttribute("aria-label");if(a)return a;
+  const l=el.closest("label");if(l){const c=l.cloneNode(true);c.querySelectorAll("input,select,button,span.muted").forEach(x=>x.remove());const t=c.textContent.trim();if(t)return t}
+  const td=el.closest("td");if(td){const tr=td.closest("tr"),ix=[...tr.children].indexOf(td),th=el.closest("table").querySelector("thead tr")?.children[ix];
+    const hv=th?.querySelector("input")?.value||th?.textContent||"";return `${hv.trim()} · ${tr.querySelector("th")?.textContent.trim()||""}`}
+  return el.placeholder||"Typing";
+}
+function updateBar(){if(!typingEl||!isTyping(typingEl))return;typebar.querySelector(".tb-v").textContent=typingEl.value||" ";
+  typebar.querySelector(".tb-v").classList.toggle("tb-empty",!typingEl.value)}
+function showBar(el){if(!typebar)return;if(!isTyping(el)){typebar.hidden=true;return}
+  typebar.querySelector(".tb-l").textContent=fieldLabel(el);typebar.hidden=false;updateBar()}
+function showField(){
+  if(!typingEl||document.activeElement!==typingEl)return;
+  const ql=typingEl.closest(".quicklog");if(ql){const hb=(document.querySelector("header")?.getBoundingClientRect().bottom||0)+6,r=ql.getBoundingClientRect();if(Math.abs(r.top-hb)>4)window.scrollBy({top:r.top-hb,behavior:"smooth"});return}
+  const vv=window.visualViewport,vh=vv?vv.height:window.innerHeight,vtop=vv?vv.offsetTop:0;
+  const barH=typebar&&!typebar.hidden?typebar.getBoundingClientRect().bottom:0;
+  const r=typingEl.getBoundingClientRect();
+  const want=Math.max(barH+16,vtop+vh*0.28);
+  if(r.top<barH+8||r.bottom>vtop+vh-16||Math.abs(r.top-want)>vh*0.25)window.scrollBy({top:r.top-want,behavior:"smooth"});
+}
+function selectAll(el){try{if(el.select&&el.tagName==="INPUT"&&el.type!=="date")el.select()}catch(err){}}
+document.addEventListener("focusin",e=>{if(!isField(e.target))return;typingEl=e.target;document.body.classList.add("typing");
+  const el=e.target;selectAll(el);setTimeout(()=>{if(document.activeElement===el)selectAll(el)},0);
+  el.addEventListener("mouseup",ev=>{ev.preventDefault()},{once:true});
+  showBar(el);setTimeout(showField,300);setTimeout(showField,700)});
+document.addEventListener("input",e=>{if(e.target===typingEl)updateBar()},true);
+document.addEventListener("focusout",()=>{setTimeout(()=>{if(!isField(document.activeElement)){document.body.classList.remove("typing");typingEl=null;if(typebar)typebar.hidden=true}},450)});
+try{window.visualViewport&&window.visualViewport.addEventListener("resize",()=>setTimeout(showField,50))}catch(e){}
+
+/* ---------- Enter / Next moves down the same column ---------- */
+app.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&e.target.id==="q-dist"){e.preventDefault();const v=parseInt(e.target.value,10);if(!(v>0)){toast("Enter how far it went");return}
+    const sel=document.getElementById("q-disc");if(sel&&sel.options.length>1){U.qPending=true;sel.focus();try{sel.showPicker()}catch(err){}}else logQuick();return}
+  if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.secname){e.preventDefault();e.target.blur();return}
+  if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches(".dhead[data-open]")){e.preventDefault();openDisc(e.target.dataset.open);return}
+  const t=e.target;if((e.key!=="Enter"&&e.keyCode!==13)||!t.dataset||!t.dataset.col)return;
+  e.preventDefault();
+  if(t.dataset.drow!==undefined)U.dRows[+t.dataset.drow].dist=t.value;
+  const col=t.dataset.col==="putters"?"pm":t.dataset.col;
+  const list=[...app.querySelectorAll(`[data-col="${col}"]`)];
+  const next=t.dataset.col==="putters"?list[0]:list[list.indexOf(t)+1];
+  if(next){next.focus();return}
+  if(col==="dd"&&t.value){const last=U.dRows[U.dRows.length-1];U.dRows.push(...blankRows(1,last?last.disc:""));render();
+    document.getElementById("dr-dist-"+(U.dRows.length-1))?.focus();return}
+  t.blur();
+});
+
+
+app.addEventListener("focusout",e=>{if(e.target.id==="q-disc"&&U.qPending){setTimeout(()=>{if(U.qPending){const v=parseInt(document.getElementById("q-dist")?.value,10);if(v>0)logQuick();else U.qPending=false}},150)}});
+/* ---------- hold-and-drag to reorder sections ---------- */
+let pressT=null,press=null,drag=null,suppressClick=false;
+const secChip=el=>{const c=el&&el.closest&&el.closest(".secbar .chip[data-filter]");return c&&c.dataset.filter!=="all"?c:null};
+function startPress(c,x,y){if(readOnly)return;cancelPress();press={c,x,y};pressT=setTimeout(()=>beginDrag(c),380)}
+function cancelPress(){clearTimeout(pressT);pressT=null;press=null}
+function beginDrag(c){pressT=null;const box=c.parentElement;drag={el:c,box};c.classList.add("dragging");box.classList.add("sorting");try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
+function moveDrag(x){const {el,box}=drag,r=box.getBoundingClientRect();
+  if(x<r.left+36)box.scrollLeft-=14;else if(x>r.right-36)box.scrollLeft+=14;
+  const chips=[...box.querySelectorAll(".chip[data-filter]")].filter(c=>c!==el&&c.dataset.filter!=="all");
+  const before=chips.find(c=>{const b=c.getBoundingClientRect();return x<b.left+b.width/2});
+  const target=before||box.querySelector(".secadd");
+  if(target&&el.nextElementSibling!==target)box.insertBefore(el,target);else if(!target)box.appendChild(el)}
+async function endDrag(){cancelPress();if(!drag)return;const {el,box}=drag;drag=null;el.classList.remove("dragging");box.classList.remove("sorting");
+  suppressClick=true;setTimeout(()=>{suppressClick=false},400);
+  const order=[...box.querySelectorAll(".chip[data-filter]")].map(c=>c.dataset.filter).filter(k=>k!=="all");
+  const cur=secObjs();if(order.join()===cur.map(x=>x.key).join())return;
+  const list=order.map(k=>cur.find(x=>x.key===k)).filter(Boolean);
+  S.settings={...S.settings,sections:list};const sl=box.scrollLeft;await saveSettings();const nb=document.querySelector(".secbar .chips");if(nb)nb.scrollLeft=sl;toast("Order saved")}
+app.addEventListener("touchstart",e=>{const c=secChip(e.target);if(!c)return;const t=e.touches[0];startPress(c,t.clientX,t.clientY)},{passive:true});
+app.addEventListener("touchmove",e=>{const t=e.touches[0];
+  if(drag){e.preventDefault();moveDrag(t.clientX);return}
+  if(press&&Math.hypot(t.clientX-press.x,t.clientY-press.y)>8)cancelPress()},{passive:false});
+app.addEventListener("touchend",endDrag);app.addEventListener("touchcancel",endDrag);
+app.addEventListener("mousedown",e=>{if(e.button!==0)return;const c=secChip(e.target);if(c)startPress(c,e.clientX,e.clientY)});
+document.addEventListener("mousemove",e=>{if(drag){e.preventDefault();moveDrag(e.clientX)}else if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>6)cancelPress()});
+document.addEventListener("mouseup",endDrag);
+app.addEventListener("contextmenu",e=>{if(secChip(e.target))e.preventDefault()});
+
+/* ---------- backup & restore ---------- */
+function backupData(){return {app:"JDG",version:1,exported:new Date().toISOString(),discs:S.discs,distance:S.distance,accuracy:S.accuracy,putts:S.putts,settings:S.settings}}
+function backupPanel(){
+  const n=S.discs.length,sess=S.accuracy.length+S.putts.length+new Set(S.distance.map(l=>l.session||l.id)).size;
+  return `<details class="panel backup" ${U.bkOpen?"open":""}><summary><h3>Backup &amp; restore</h3></summary>
+    <p class="small muted" style="margin:0">Save a copy of all your discs, practice and settings (${n} disc${n===1?"":"s"}, ${sess} practice entr${sess===1?"y":"ies"}), or bring a backup into this copy of JDG.</p>
+    <div class="row"><button class="primary" data-act="bkDownload">Download backup</button><button data-act="bkCopy">Copy backup</button></div>
+    ${U.bkText?`<textarea id="bk-out" rows="4" readonly aria-label="Backup text">${esc(U.bkText)}</textarea><p class="small muted" style="margin:0">If copying didn't work, press and hold in the box, choose Select all, then Copy.</p>`:""}
+    <div class="k" style="margin-top:4px">Restore</div>
+    <div class="row"><label class="filebtn"><input type="file" id="bk-file" accept=".json,application/json,text/plain" data-bkfile="1">Choose backup file</label><button class="ghost" data-act="bkPaste">Paste backup text</button></div>
+    ${U.bkPasting?`<textarea id="bk-in" rows="4" placeholder="Paste your backup here" aria-label="Paste backup"></textarea><div class="row" style="justify-content:flex-end"><button class="primary" data-act="bkReadPaste">Check backup</button></div>`:""}
+    ${U.bkPending?`<div class="ask askq"><span><strong>Restore this backup?</strong> ${U.bkPending.discs.length} discs, ${U.bkPending.distance.length} distance throws, ${U.bkPending.accuracy.length} accuracy and ${U.bkPending.putts.length} putting sessions. Items already here stay; matching items are replaced.</span>
+      <div class="row"><button class="ghost" data-act="bkCancel">No</button><button class="primary" data-act="bkRestore">Yes, restore</button></div></div>`:""}
+  </details>`;
+}
+function parseBackup(txt){try{const v=JSON.parse(txt);if(!v||!Array.isArray(v.discs))throw 0;COLLS.forEach(c=>{if(!Array.isArray(v[c]))v[c]=[]});return v}catch(e){toast("That doesn't look like a JDG backup");return null}}
+async function restoreBackup(v){
+  let done=0;
+  for(const c of COLLS){for(const rec of v[c]){if(!rec||!rec.id)continue;const {id,...rest}=rec;
+    if(db){try{await db.collection(c).doc(String(id)).set(rest)}catch(e){fail(e);return}}
+    else{const i=S[c].findIndex(x=>x.id===id);if(i>=0)S[c][i]={id,...rest};else S[c].push({id,...rest})}done++}}
+  if(v.settings&&typeof v.settings==="object")S.settings={...S.settings,...v.settings};
+  await saveSettings();if(!db)localSave();U.bkPending=null;U.bkPasting=false;render();toast("Restored "+done+" items");
+}
+app.addEventListener("change",e=>{const t=e.target;if(!t.dataset||!t.dataset.bkfile||!t.files||!t.files[0])return;
+  const r=new FileReader();r.onload=()=>{const v=parseBackup(String(r.result));if(v){U.bkPending=v;U.bkOpen=true;render()}};r.readAsText(t.files[0])});
+app.addEventListener("toggle",e=>{if(e.target.classList&&e.target.classList.contains("backup"))U.bkOpen=e.target.open},true);
+async function backupAction(a){
+  if(a==="bkDownload"){const txt=JSON.stringify(backupData(),null,1),name="jdg-backup-"+today()+".json";
+    try{const dl=window.claude?await window.claude.use("downloads"):null;if(dl){await dl.save({filename:name,data:txt});toast("Backup saved");return}}catch(e){}
+    try{const url=URL.createObjectURL(new Blob([txt],{type:"application/json"}));const a2=document.createElement("a");a2.href=url;a2.download=name;document.body.appendChild(a2);a2.click();a2.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);toast("Backup downloading")}
+    catch(e){U.bkText=txt;render();toast("Use Copy backup instead")}return true}
+  if(a==="bkCopy"){const txt=JSON.stringify(backupData());U.bkText=txt;
+    try{await navigator.clipboard.writeText(txt);toast("Backup copied")}catch(e){render();const ta=document.getElementById("bk-out");if(ta){ta.focus();ta.select()}toast("Select the text and copy it");return true}
+    render();return true}
+  if(a==="bkPaste"){U.bkPasting=!U.bkPasting;render();setTimeout(()=>document.getElementById("bk-in")?.focus(),30);return true}
+  if(a==="bkReadPaste"){const v=parseBackup(document.getElementById("bk-in")?.value||"");if(v){U.bkPending=v;render()}return true}
+  if(a==="bkCancel"){U.bkPending=null;render();return true}
+  if(a==="bkRestore"){await restoreBackup(U.bkPending);return true}
+}
+
+/* ---------- boot ---------- */
+localLoad();render();setTimeout(focusQuick,300);
+(async()=>{
+  try{
+    const d=await window.claude?.use?.("db");
+    if(!d)return;
+    const user=await window.claude.use("user");
+    const canWrite=user?await user.can("data.write"):null;
+    if(canWrite===false)readOnly=true;
+    db=d;
+    COLLS.forEach(c=>db.collection(c).onSnapshot(s=>{S[c]=s.docs.map(x=>({id:x.id,...x.data()}));render()},()=>{}));
+    db.doc("settings/main").onSnapshot(s=>{S.settings=s.exists?{putDistances:DEFAULT_PUTTS.slice(),...s.data()}:{putDistances:DEFAULT_PUTTS.slice()};render()},()=>{});
+  }catch(e){}
+})();
+</script>
+
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
+</script>
+</body>
+</html>
